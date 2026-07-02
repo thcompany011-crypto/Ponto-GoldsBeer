@@ -17,15 +17,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            // Verifica o perfil para mostrar a tela de Admin
             const userDoc = await getDoc(doc(db, "users", user.uid));
             const secaoCadastro = document.getElementById("secao-cadastro-admin");
 
             if (userDoc.exists() && userDoc.data().role === "admin") {
-                secaoCadastro.style.display = "block"; // Revela apenas se for Admin
+                secaoCadastro.style.display = "block"; 
             }
 
-            // Carrega a lista de pontos do usuário logado
             carregarHistorico(user.uid);
 
         } catch (error) {
@@ -33,24 +31,28 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 2. Conectar os botões de Bater Ponto
+    // 2. Conectar os botões enviando o UID do usuário (NOVIDADE AQUI)
     const btnEntrada = document.getElementById("btnEntrada");
     const btnSaida = document.getElementById("btnSaida");
 
     if (btnEntrada) {
         btnEntrada.addEventListener("click", async () => {
-            await registrarPonto("Entrada");
-            carregarHistorico(auth.currentUser.uid); // Atualiza a lista na hora
+            if(auth.currentUser) {
+                await registrarPonto("Entrada", auth.currentUser.uid);
+                carregarHistorico(auth.currentUser.uid);
+            }
         });
     }
     if (btnSaida) {
         btnSaida.addEventListener("click", async () => {
-            await registrarPonto("Saída");
-            carregarHistorico(auth.currentUser.uid); // Atualiza a lista na hora
+            if(auth.currentUser) {
+                await registrarPonto("Saída", auth.currentUser.uid);
+                carregarHistorico(auth.currentUser.uid);
+            }
         });
     }
 
-    // 3. Lógica do Formulário de Cadastro (Apenas Admin verá)
+    // 3. Lógica do Formulário de Cadastro
     const formCadastro = document.getElementById("form-cadastro-colaborador");
     if (formCadastro) {
         formCadastro.addEventListener("submit", async (e) => {
@@ -71,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// Função auxiliar para buscar e montar a lista de pontos na tela
+// 4. Função que busca o histórico
 async function carregarHistorico(uid) {
     const lista = document.getElementById("lista-pontos");
     if (!lista) return;
@@ -80,14 +82,13 @@ async function carregarHistorico(uid) {
         const q = query(collection(db, "batidas"), where("uid", "==", uid));
         const querySnapshot = await getDocs(q);
         
-        lista.innerHTML = ""; // Limpa a mensagem de "Carregando..."
+        lista.innerHTML = ""; 
         
         if (querySnapshot.empty) {
             lista.innerHTML = "<li style='padding: 10px; border-bottom: 1px solid #333;'>Nenhum ponto registrado.</li>";
             return;
         }
 
-        // Ordena os registros do mais recente para o mais antigo via JavaScript
         const pontos = [];
         querySnapshot.forEach((doc) => pontos.push(doc.data()));
         pontos.sort((a, b) => new Date(b.data) - new Date(a.data));
@@ -98,7 +99,6 @@ async function carregarHistorico(uid) {
             li.style.padding = "10px";
             li.style.borderBottom = "1px solid #333";
             
-            // Define a cor baseada no tipo (Verde para entrada, Vermelho para saída)
             const cor = ponto.tipo === "Entrada" ? "#28a745" : "#dc3545";
             li.innerHTML = `<strong style="color: ${cor};">${ponto.tipo}</strong>: <br> ${dataFormatada}`;
             
