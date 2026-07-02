@@ -1,12 +1,27 @@
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-import { app } from "./firebase.js";
-import { registrarPonto } from "./ponto.js";
+import { cadastrarColaborador } from "./auth.js";
 
-const auth = getAuth(app);
+document.addEventListener("DOMContentLoaded", () => {
+    const formCadastro = document.getElementById("form-cadastro-colaborador");
 
-document.getElementById('btnEntrada').addEventListener('click', () => registrarPonto('entrada'));
-document.getElementById('btnSaida').addEventListener('click', () => registrarPonto('saida'));
+    if (formCadastro) {
+        formCadastro.addEventListener("submit", async (e) => {
+            e.preventDefault(); // Evita que a página recarregue ao enviar o formulário
 
-// Adicionar um botão de sair para segurança
-// Você pode adicionar <button id="logoutBtn">Sair</button> no dashboard.html se quiser
+            const nome = document.getElementById("cad-nome").value;
+            const email = document.getElementById("cad-email").value;
+            const senha = document.getElementById("cad-senha").value;
 
+            try {
+                alert("Processando cadastro, aguarde...");
+                
+                await cadastrarColaborador(nome, email, senha);
+                
+                alert(`Colaborador ${nome} cadastrado com sucesso!`);
+                formCadastro.reset(); // Limpa os campos após sucesso
+                
+            } catch (error) {
+                alert("Erro ao cadastrar: " + error.message);
+            }
+        });
+    }
+});
