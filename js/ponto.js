@@ -21,3 +21,17 @@ export const registrarPonto = async (tipo, uid) => {
         alert("Erro ao registrar ponto: " + error.message);
     }
 };
+export const registrarPonto = async (tipo, uid) => {
+    console.log("Tentando registrar para o UID:", uid); // Adicione isso
+    try {
+        await addDoc(collection(db, "batidas"), {
+            uid: uid,
+            tipo: tipo,
+            data: new Date().toISOString()
+        });
+        alert("Ponto de " + tipo + " registrado com sucesso!");
+    } catch (error) {
+        console.error("Erro detalhado:", error); // Isso vai te dar a pista final
+        alert("Erro ao registrar ponto: " + error.message);
+    }
+};
