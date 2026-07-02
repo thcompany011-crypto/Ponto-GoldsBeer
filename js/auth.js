@@ -1,17 +1,53 @@
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { app } from "./firebase.js";
 
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-document.getElementById('loginBtn').addEventListener('click', async () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+// === LÓGICA DE LOGIN (login.html) ===
+const loginBtn = document.getElementById('loginBtn');
+if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            window.location.href = "dashboard.html";
+        } catch (error) {
+            alert("Erro no login: " + error.message);
+        }
+    });
+}
+
+// === LÓGICA DE CADASTRO (dashboard.html) ===
+export async function cadastrarColaborador(nome, email, senha) {
+    // Cria uma app secundária temporária para não deslogar o Admin
+    const configAtual = app.options;
+    const secondaryApp = initializeApp(configAtual, "SecondaryApp_" + Math.random().toString(36).substring(7));
+    const secondaryAuth = getAuth(secondaryApp);
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = "dashboard.html";
-    } catch (error) {
-        alert("Erro no login: " + error.message);
-    }
-});
+        // Cria o usuário na autenticação
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, senha);
+        const novoUsuario = userCredential.user;
 
+        // Salva o perfil no banco de dados
+        await setDoc(doc(db, "users", novoUsuario.uid), {
+            nome: nome,
+            email: email,
+            role: "colaborador",
+            dataCriacao: new Date().toISOString()
+        });
+
+        // Faz o logout da instância secundária para limpar a memória
+        await signOut(secondaryAuth);
+        
+        return { sucesso: true };
+    } catch (error) {
+        console.error("Erro ao cadastrar colaborador:", error);
+        throw error;
+    }
+}
