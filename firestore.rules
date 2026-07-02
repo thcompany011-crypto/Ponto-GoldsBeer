@@ -1,9 +1,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /batidas/{batidaId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.uid;
+    
+    // Regras para os perfis de usuários
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+    
+    // Regras para o registro de ponto
+    match /batidas/{batidaId} {
+      // Permite ler se a batida pertencer ao usuário logado
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      // Permite criar um novo registro se o UID enviado for o mesmo do usuário logado
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.uid;
+    }
+    
   }
 }
-
