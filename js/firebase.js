@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
+  apiKey: "AIzaSyCqijJwChfAwb3BRF71U7SkuaUcxCPLH1I",
   authDomain: "sistemadeponto-2a85d.firebaseapp.com",
   projectId: "sistemadeponto-2a85d",
   storageBucket: "sistemadeponto-2a85d.appspot.com",
