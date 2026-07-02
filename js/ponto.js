@@ -1,20 +1,18 @@
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 import { app } from "./firebase.js";
 
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-export const registrarPonto = async (tipo) => {
-    const user = auth.currentUser;
-    if (!user) {
-        alert("Usuário não logado!");
+// Agora a função exige receber o UID de quem clicou no botão
+export const registrarPonto = async (tipo, uid) => {
+    if (!uid) {
+        alert("Erro de comunicação: UID do usuário não foi enviado!");
         return;
     }
 
     try {
         await addDoc(collection(db, "batidas"), {
-            uid: user.uid,
+            uid: uid,
             tipo: tipo,
             data: new Date().toISOString()
         });
@@ -23,4 +21,3 @@ export const registrarPonto = async (tipo) => {
         alert("Erro ao registrar ponto: " + error.message);
     }
 };
-
