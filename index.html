@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>PontoPro | Bem-vindo</title>
+    <link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js');
+  }
+</script>
 </head>
 <body>
     <script type="module">
