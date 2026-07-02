@@ -7,14 +7,19 @@ import { registrarPonto } from "./ponto.js";
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Variável global para guardar o ID do usuário após o login
+let usuarioLogadoUid = null;
+
 document.addEventListener("DOMContentLoaded", () => {
     
-    // 1. Controle de Visibilidade e Busca de Histórico
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
             window.location.href = "login.html";
             return;
         }
+
+        // Armazena o ID aqui
+        usuarioLogadoUid = user.uid;
 
         try {
             const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -24,35 +29,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 secaoCadastro.style.display = "block"; 
             }
 
-            carregarHistorico(user.uid);
+            carregarHistorico(usuarioLogadoUid);
 
         } catch (error) {
             console.error("Erro ao carregar painel:", error);
         }
     });
 
-    // 2. Conectar os botões enviando o UID do usuário (NOVIDADE AQUI)
+    // Agora usamos a variável global usuarioLogadoUid
     const btnEntrada = document.getElementById("btnEntrada");
     const btnSaida = document.getElementById("btnSaida");
 
     if (btnEntrada) {
         btnEntrada.addEventListener("click", async () => {
-            if(auth.currentUser) {
-                await registrarPonto("Entrada", auth.currentUser.uid);
-                carregarHistorico(auth.currentUser.uid);
+            if(usuarioLogadoUid) {
+                await registrarPonto("Entrada", usuarioLogadoUid);
+                carregarHistorico(usuarioLogadoUid);
+            } else {
+                alert("Aguarde o carregamento do sistema...");
             }
         });
     }
     if (btnSaida) {
         btnSaida.addEventListener("click", async () => {
-            if(auth.currentUser) {
-                await registrarPonto("Saída", auth.currentUser.uid);
-                carregarHistorico(auth.currentUser.uid);
+            if(usuarioLogadoUid) {
+                await registrarPonto("Saída", usuarioLogadoUid);
+                carregarHistorico(usuarioLogadoUid);
+            } else {
+                alert("Aguarde o carregamento do sistema...");
             }
         });
     }
 
-    // 3. Lógica do Formulário de Cadastro
+    // ... (o restante do seu código do formCadastro continua igual)
     const formCadastro = document.getElementById("form-cadastro-colaborador");
     if (formCadastro) {
         formCadastro.addEventListener("submit", async (e) => {
@@ -62,30 +71,29 @@ document.addEventListener("DOMContentLoaded", () => {
             const senha = document.getElementById("cad-senha").value;
 
             try {
-                alert("Processando cadastro...");
+                alert("Processando...");
                 await cadastrarColaborador(nome, email, senha);
-                alert(`Colaborador ${nome} cadastrado com sucesso!`);
+                alert("Sucesso!");
                 formCadastro.reset(); 
             } catch (error) {
-                alert("Erro ao cadastrar: " + error.message);
+                alert("Erro: " + error.message);
             }
         });
     }
 });
 
-// 4. Função que busca o histórico
 async function carregarHistorico(uid) {
+    // ... (sua função carregarHistorico pode continuar exatamente como está)
     const lista = document.getElementById("lista-pontos");
     if (!lista) return;
 
     try {
         const q = query(collection(db, "batidas"), where("uid", "==", uid));
         const querySnapshot = await getDocs(q);
-        
         lista.innerHTML = ""; 
         
         if (querySnapshot.empty) {
-            lista.innerHTML = "<li style='padding: 10px; border-bottom: 1px solid #333;'>Nenhum ponto registrado.</li>";
+            lista.innerHTML = "<li style='padding:10px;'>Nenhum ponto registrado.</li>";
             return;
         }
 
@@ -98,15 +106,11 @@ async function carregarHistorico(uid) {
             const li = document.createElement("li");
             li.style.padding = "10px";
             li.style.borderBottom = "1px solid #333";
-            
             const cor = ponto.tipo === "Entrada" ? "#28a745" : "#dc3545";
             li.innerHTML = `<strong style="color: ${cor};">${ponto.tipo}</strong>: <br> ${dataFormatada}`;
-            
             lista.appendChild(li);
         });
-
     } catch (error) {
-        lista.innerHTML = "<li>Erro ao buscar histórico.</li>";
         console.error(error);
     }
 }
