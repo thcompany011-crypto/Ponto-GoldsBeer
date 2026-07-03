@@ -7,7 +7,6 @@ import { registrarPonto } from "./ponto.js";
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Variável global para guardar o ID do usuário após o login
 let usuarioLogadoUid = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -18,15 +17,18 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Armazena o ID aqui
         usuarioLogadoUid = user.uid;
 
         try {
             const userDoc = await getDoc(doc(db, "users", user.uid));
             const secaoCadastro = document.getElementById("secao-cadastro-admin");
-
+            
+            // LÓGICA DE SEPARAÇÃO APRIMORADA
             if (userDoc.exists() && userDoc.data().role === "admin") {
                 secaoCadastro.style.display = "block"; 
+            } else {
+                // Forçamos o ocultamento caso não seja admin
+                secaoCadastro.style.display = "none";
             }
 
             carregarHistorico(usuarioLogadoUid);
@@ -36,7 +38,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Agora usamos a variável global usuarioLogadoUid
     const btnEntrada = document.getElementById("btnEntrada");
     const btnSaida = document.getElementById("btnSaida");
 
@@ -45,8 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if(usuarioLogadoUid) {
                 await registrarPonto("Entrada", usuarioLogadoUid);
                 carregarHistorico(usuarioLogadoUid);
-            } else {
-                alert("Aguarde o carregamento do sistema...");
             }
         });
     }
@@ -55,13 +54,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if(usuarioLogadoUid) {
                 await registrarPonto("Saída", usuarioLogadoUid);
                 carregarHistorico(usuarioLogadoUid);
-            } else {
-                alert("Aguarde o carregamento do sistema...");
             }
         });
     }
 
-    // ... (o restante do seu código do formCadastro continua igual)
     const formCadastro = document.getElementById("form-cadastro-colaborador");
     if (formCadastro) {
         formCadastro.addEventListener("submit", async (e) => {
@@ -71,29 +67,29 @@ document.addEventListener("DOMContentLoaded", () => {
             const senha = document.getElementById("cad-senha").value;
 
             try {
-                alert("Processando...");
+                alert("Processando cadastro...");
                 await cadastrarColaborador(nome, email, senha);
-                alert("Sucesso!");
+                alert(`Colaborador ${nome} cadastrado com sucesso!`);
                 formCadastro.reset(); 
             } catch (error) {
-                alert("Erro: " + error.message);
+                alert("Erro ao cadastrar: " + error.message);
             }
         });
     }
 });
 
 async function carregarHistorico(uid) {
-    // ... (sua função carregarHistorico pode continuar exatamente como está)
     const lista = document.getElementById("lista-pontos");
     if (!lista) return;
 
     try {
         const q = query(collection(db, "batidas"), where("uid", "==", uid));
         const querySnapshot = await getDocs(q);
+        
         lista.innerHTML = ""; 
         
         if (querySnapshot.empty) {
-            lista.innerHTML = "<li style='padding:10px;'>Nenhum ponto registrado.</li>";
+            lista.innerHTML = "<li style='padding: 10px; color: #888;'>Nenhum ponto registrado.</li>";
             return;
         }
 
@@ -111,6 +107,6 @@ async function carregarHistorico(uid) {
             lista.appendChild(li);
         });
     } catch (error) {
-        console.error(error);
+        console.error("Erro ao carregar histórico:", error);
     }
 }
