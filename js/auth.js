@@ -35,12 +35,11 @@ export async function cadastrarColaborador(nome, email, senha) {
         const novoUsuario = userCredential.user;
 
         // Salva o perfil no banco de dados
-        await setDoc(doc(db, "users", novoUsuario.uid), {
-            nome: nome,
-            email: email,
-            role: "colaborador",
-            dataCriacao: new Date().toISOString()
-        });
+       await setDoc(doc(db, "usuarios", userCredential.user.uid), {
+    nome: nome,
+    email: email,
+    role: "colaborador" // ou "admin"
+});
 
         // Faz o logout da instância secundária para limpar a memória
         await signOut(secondaryAuth);
