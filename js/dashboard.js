@@ -62,7 +62,6 @@ document.addEventListener("DOMContentLoaded", () => {
         btnGerarRelatorio.addEventListener("click", () => gerarRelatorio());
     }
 
-    // Botões da edição
     const btnSalvarEdicao = document.getElementById("btnSalvarEdicao");
     const btnCancelarEdicao = document.getElementById("btnCancelarEdicao");
     const modalEditar = document.getElementById("modal-editar");
@@ -83,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert("Batida corrigida com sucesso!");
                 modalEditar.style.display = "none";
                 carregarPainelAdmin();
-                carregarHistorico(usuarioLogadoUid); // Atualiza também o histórico pessoal se for você
+                carregarHistorico(usuarioLogadoUid); 
             } catch (error) { console.error("Erro ao editar:", error); }
         });
     }
@@ -148,7 +147,6 @@ async function carregarPainelAdmin() {
         listaGeral.innerHTML = "";
         const todosPontos = [];
         
-        // Agora guardamos o ID do documento para poder editar/excluir
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             todosPontos.push({
@@ -199,7 +197,6 @@ async function carregarPainelAdmin() {
     } catch (error) { console.error(error); }
 }
 
-// Função global para carregar os dados no formulário de edição
 window.abrirEdicao = function(id, tipo, dataIso) {
     const modal = document.getElementById("modal-editar");
     modal.style.display = "block";
@@ -207,12 +204,10 @@ window.abrirEdicao = function(id, tipo, dataIso) {
     document.getElementById("editBatidaId").value = id;
     document.getElementById("editTipo").value = tipo;
     
-    // Converte o formato do Firebase (ISO) para o formato que o input aceita (YYYY-MM-DDTHH:MM)
     const d = new Date(dataIso);
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     document.getElementById("editData").value = d.toISOString().slice(0, 16);
     
-    // Rola a página até a caixa de edição
     modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
@@ -252,6 +247,20 @@ async function gerarRelatorio() {
         fim = intervalo.fim;
     }
 
+    // 1. Calcula a Carga Horária Esperada para o período selecionado
+    let horasEsperadasNoPeriodo = 0;
+    
+    // Tabela da sua jornada: 0:Dom (7h), 1:Seg (6h), 2:Ter (0h), 3:Qua (6h), 4:Qui (6h), 5:Sex (9.5h), 6:Sab (9.5h)
+    const jornadaSemanal = [7, 6, 0, 6, 6, 9.5, 9.5]; 
+    
+    let dataAtualLoop = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+    const dataFimLoop = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
+
+    while (dataAtualLoop <= dataFimLoop) {
+        horasEsperadasNoPeriodo += jornadaSemanal[dataAtualLoop.getDay()];
+        dataAtualLoop.setDate(dataAtualLoop.getDate() + 1);
+    }
+
     try {
         const querySnapshot = await getDocs(collection(db, "batidas"));
         const horasPorUsuario = {};
@@ -266,8 +275,13 @@ async function gerarRelatorio() {
             }
         });
 
-        let html = `<table border="1" style="width:100%; border-collapse:collapse; background:#222; color:white; text-align:left;">
-                    <tr style="background:#444;"><th style="padding:8px;">Colaborador</th><th style="padding:8px;">Horas Trabalhadas</th></tr>`;
+        let html = `<table border="1" style="width:100%; border-collapse:collapse; background:#222; color:white; text-align:left; font-size: 14px;">
+                    <tr style="background:#444;">
+                        <th style="padding:8px;">Colaborador</th>
+                        <th style="padding:8px;">Trabalhadas</th>
+                        <th style="padding:8px;">Carga Esperada</th>
+                        <th style="padding:8px;">Saldo (Horas Extras)</th>
+                    </tr>`;
 
         for (const uid in horasPorUsuario) {
             const pontos = horasPorUsuario[uid];
@@ -285,8 +299,28 @@ async function gerarRelatorio() {
                 }
             });
 
-            const totalHoras = (totalMS / (1000 * 60 * 60)).toFixed(2);
-            html += `<tr><td style="padding:8px;">${usuariosMap[uid]}</td><td style="padding:8px;"><strong>${totalHoras} hrs</strong></td></tr>`;
+            const totalHorasDecimal = totalMS / (1000 * 60 * 60);
+            const totalHoras = totalHorasDecimal.toFixed(2);
+            
+            let htmlSaldo = "";
+            
+            if (totalHorasDecimal > horasEsperadasNoPeriodo) {
+                const excedente = totalHorasDecimal - horasEsperadasNoPeriodo;
+                const valorReais = (excedente * 11).toFixed(2).replace('.', ',');
+                htmlSaldo = `<span style="color: #2ecc71; font-weight: bold;">+ ${excedente.toFixed(2)} hrs (R$ ${valorReais})</span>`;
+            } else if (totalHorasDecimal < horasEsperadasNoPeriodo) {
+                const debito = horasEsperadasNoPeriodo - totalHorasDecimal;
+                htmlSaldo = `<span style="color: #e74c3c;">- ${debito.toFixed(2)} hrs (Faltam)</span>`;
+            } else {
+                htmlSaldo = `<span style="color: #bdc3c7;">Horário exato</span>`;
+            }
+
+            html += `<tr>
+                        <td style="padding:8px;">${usuariosMap[uid]}</td>
+                        <td style="padding:8px;"><strong>${totalHoras} hrs</strong></td>
+                        <td style="padding:8px; color: #aaa;">${horasEsperadasNoPeriodo.toFixed(2)} hrs</td>
+                        <td style="padding:8px;">${htmlSaldo}</td>
+                     </tr>`;
         }
         html += `</table>`;
         container.innerHTML = `<h4>Período analisado: <br><span style="color:#f39c12;">${inicio.toLocaleDateString("pt-BR")} até ${fim.toLocaleDateString("pt-BR")}</span></h4>` + html;
