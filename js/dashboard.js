@@ -18,14 +18,23 @@ document.addEventListener("DOMContentLoaded", () => {
             const secaoCadastro = document.getElementById("secao-cadastro-admin");
             const painelAvancado = document.getElementById("painel-avancado-admin");
 
+            // --- LOGS DE DIAGNÓSTICO ---
+            console.log("O usuário existe no banco?", userDoc.exists());
+            if (userDoc.exists()) {
+                console.log("Dados que vieram do banco:", userDoc.data());
+            }
+            // ---------------------------
+
             if (userDoc.exists() && userDoc.data().cargo === "admin") {
+                console.log("✅ Sistema reconheceu como ADMIN!"); 
                 if (secaoCadastro) secaoCadastro.style.display = "block";
-                if (painelAvancado) painelAvancado.style.display = "block";
+                if (painelAvancado) painelAvancado.style.display = "flex"; 
                 
                 await mapearUsuarios();
                 popularSelectColaboradores();
                 carregarPainelAdmin();
             } else {
+                console.log("👤 Sistema reconheceu como COLABORADOR!"); 
                 if (secaoCadastro) secaoCadastro.style.display = "none";
                 if (painelAvancado) painelAvancado.style.display = "none";
             }
