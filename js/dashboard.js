@@ -133,6 +133,7 @@ async function carregarHistorico(uid) {
         
         pontos.forEach((ponto) => {
             const li = document.createElement("li");
+            li.className = ponto.tipo === "Entrada" ? "is-entrada" : "is-saida";
             li.innerHTML = `<strong>${ponto.tipo}</strong>: ${new Date(ponto.data).toLocaleString("pt-BR")}`;
             lista.appendChild(li);
         });
@@ -149,189 +150,14 @@ async function carregarPainelAdmin() {
         
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            todosPontos.push({
-                id: doc.id,
-                nome: usuariosMap[data.uid] || "Desconhecido",
-                tipo: data.tipo,
-                data: data.data
-            });
+            todosPontos.push({ id: doc.id, nome: usuariosMap[data.uid] || "Desconhecido", tipo: data.tipo, data: data.data });
         });
         
-        todosPontos.sort((a, b) => new Date(a.data) - new Date(b.data));
+        todosPontos.sort((a, b) => new Date(a.data) - new Date(b.data)); // Mais recente primeiro
         
         todosPontos.forEach((ponto) => {
             const li = document.createElement("li");
+            li.className = ponto.tipo === "Entrada" ? "is-entrada" : "is-saida";
             
-            const infoTexto = document.createElement("span");
-            infoTexto.innerHTML = `<span style="color: #3498db;">${ponto.nome}</span> - <strong>${ponto.tipo}</strong>: ${new Date(ponto.data).toLocaleString("pt-BR")}`;
-            
-            const btnGroup = document.createElement("div");
-
-            const btnEdit = document.createElement("button");
-            btnEdit.textContent = "Editar";
-            btnEdit.className = "btn-acao";
-            btnEdit.style.backgroundColor = "#f39c12";
-            btnEdit.style.color = "white";
-            btnEdit.onclick = () => abrirEdicao(ponto.id, ponto.tipo, ponto.data);
-
-            const btnDel = document.createElement("button");
-            btnDel.textContent = "Excluir";
-            btnDel.className = "btn-acao";
-            btnDel.style.backgroundColor = "#e74c3c";
-            btnDel.style.color = "white";
-            btnDel.onclick = async () => {
-                if(confirm(`Tem certeza que deseja apagar a batida de ${ponto.nome}?`)) {
-                    await deleteDoc(doc(db, "batidas", ponto.id));
-                    carregarPainelAdmin();
-                    carregarHistorico(usuarioLogadoUid);
-                }
-            };
-
-            btnGroup.appendChild(btnEdit);
-            btnGroup.appendChild(btnDel);
-
-            li.appendChild(infoTexto);
-            li.appendChild(btnGroup);
-            listaGeral.appendChild(li);
-        });
-    } catch (error) { console.error(error); }
-}
-
-window.abrirEdicao = function(id, tipo, dataIso) {
-    const modal = document.getElementById("modal-editar");
-    modal.style.display = "block";
-    
-    document.getElementById("editBatidaId").value = id;
-    document.getElementById("editTipo").value = tipo;
-    
-    const d = new Date(dataIso);
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    document.getElementById("editData").value = d.toISOString().slice(0, 16);
-    
-    modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
-};
-
-function obterIntervaloSemanal() {
-    const hoje = new Date();
-    const diaSemana = hoje.getDay(); 
-    
-    let diasParaAtras = diaSemana - 3; 
-    if (diasParaAtras < 0) diasParaAtras += 7; 
-    
-    const quartaFeira = new Date(hoje);
-    quartaFeira.setDate(hoje.getDate() - diasParaAtras);
-    quartaFeira.setHours(0, 0, 0, 0);
-    
-    const tercaFeira = new Date(quartaFeira);
-    tercaFeira.setDate(quartaFeira.getDate() + 6);
-    tercaFeira.setHours(23, 59, 59, 999);
-    
-    return { inicio: quartaFeira, fim: tercaFeira };
-}
-
-async function gerarRelatorio() {
-    const container = document.getElementById("container-relatorio");
-    if (!container) return;
-
-    const inputInicio = document.getElementById("dataInicioRelatorio").value;
-    const inputFim = document.getElementById("dataFimRelatorio").value;
-    
-    let inicio, fim;
-
-    if (inputInicio && inputFim) {
-        inicio = new Date(inputInicio + "T00:00:00");
-        fim = new Date(inputFim + "T23:59:59");
-    } else {
-        const intervalo = obterIntervaloSemanal();
-        inicio = intervalo.inicio;
-        fim = intervalo.fim;
-    }
-
-    // Cria uma "Tolerância" de 14 horas pra frente (pescar a saída da madrugada)
-    const limiteTolerancia = new Date(fim.getTime() + (14 * 60 * 60 * 1000));
-
-    let horasEsperadasNoPeriodo = 0;
-    
-    // Tabela da sua jornada: 0:Dom (7h), 1:Seg (6h), 2:Ter (0h), 3:Qua (6h), 4:Qui (6h), 5:Sex (9.5h), 6:Sab (9.5h)
-    const jornadaSemanal = [7, 6, 0, 6, 6, 9.5, 9.5]; 
-    
-    let dataAtualLoop = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
-    const dataFimLoop = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
-
-    while (dataAtualLoop <= dataFimLoop) {
-        horasEsperadasNoPeriodo += jornadaSemanal[dataAtualLoop.getDay()];
-        dataAtualLoop.setDate(dataAtualLoop.getDate() + 1);
-    }
-
-    try {
-        const querySnapshot = await getDocs(collection(db, "batidas"));
-        const horasPorUsuario = {};
-
-        Object.keys(usuariosMap).forEach(uid => horasPorUsuario[uid] = []);
-
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const dataPonto = new Date(data.data);
-            
-            // Puxa as batidas até a tolerância para não cortar a saída do plantão da noite
-            if (dataPonto >= inicio && dataPonto <= limiteTolerancia) {
-                if (horasPorUsuario[data.uid]) horasPorUsuario[data.uid].push({ tipo: data.tipo, data: dataPonto });
-            }
-        });
-
-        let html = `<table border="1" style="width:100%; border-collapse:collapse; background:#222; color:white; text-align:left; font-size: 14px;">
-                    <tr style="background:#444;">
-                        <th style="padding:8px;">Colaborador</th>
-                        <th style="padding:8px;">Trabalhadas</th>
-                        <th style="padding:8px;">Carga Esperada</th>
-                        <th style="padding:8px;">Saldo (Horas Extras)</th>
-                    </tr>`;
-
-        for (const uid in horasPorUsuario) {
-            const pontos = horasPorUsuario[uid];
-            pontos.sort((a, b) => a.data - b.data); 
-
-            let totalMS = 0;
-            let entradaAtiva = null;
-
-            pontos.forEach((p) => {
-                if (p.tipo === "Entrada") {
-                    // SÓ aceita a Entrada se ela começou DENTRO do prazo (até domingo 23:59).
-                    // Entradas de segunda-feira de tarde serão ignoradas aqui!
-                    if (p.data <= fim) {
-                        entradaAtiva = p.data;
-                    }
-                } else if (p.tipo === "Saída" && entradaAtiva) {
-                    // Achou a Saída que faz par com a Entrada (mesmo que seja de madrugada no dia seguinte)
-                    totalMS += (p.data - entradaAtiva);
-                    entradaAtiva = null; 
-                }
-            });
-
-            const totalHorasDecimal = totalMS / (1000 * 60 * 60);
-            const totalHoras = totalHorasDecimal.toFixed(2);
-            
-            let htmlSaldo = "";
-            
-            if (totalHorasDecimal > horasEsperadasNoPeriodo) {
-                const excedente = totalHorasDecimal - horasEsperadasNoPeriodo;
-                const valorReais = (excedente * 11).toFixed(2).replace('.', ',');
-                htmlSaldo = `<span style="color: #2ecc71; font-weight: bold;">+ ${excedente.toFixed(2)} hrs (R$ ${valorReais})</span>`;
-            } else if (totalHorasDecimal < horasEsperadasNoPeriodo) {
-                const debito = horasEsperadasNoPeriodo - totalHorasDecimal;
-                htmlSaldo = `<span style="color: #e74c3c;">- ${debito.toFixed(2)} hrs (Faltam)</span>`;
-            } else {
-                htmlSaldo = `<span style="color: #bdc3c7;">Horário exato</span>`;
-            }
-
-            html += `<tr>
-                        <td style="padding:8px;">${usuariosMap[uid]}</td>
-                        <td style="padding:8px;"><strong>${totalHoras} hrs</strong></td>
-                        <td style="padding:8px; color: #aaa;">${horasEsperadasNoPeriodo.toFixed(2)} hrs</td>
-                        <td style="padding:8px;">${htmlSaldo}</td>
-                     </tr>`;
-        }
-        html += `</table>`;
-        container.innerHTML = `<h4>Período analisado: <br><span style="color:#f39c12;">${inicio.toLocaleDateString("pt-BR")} até ${fim.toLocaleDateString("pt-BR")}</span></h4>` + html;
-    } catch (error) { console.error(error); }
-}
+            const infoTexto = document.createElement("div");
+            infoTexto.
