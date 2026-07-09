@@ -19,13 +19,19 @@ document.addEventListener("DOMContentLoaded", () => {
             const painelAvancado = document.getElementById("painel-avancado-admin");
 
             // --- LOGS DE DIAGNÓSTICO ---
+            console.log("Seu UID de login atual é:", user.uid);
+            console.log("Seu e-mail de login atual é:", user.email);
             console.log("O usuário existe no banco?", userDoc.exists());
             if (userDoc.exists()) {
                 console.log("Dados que vieram do banco:", userDoc.data());
             }
             // ---------------------------
 
-            if (userDoc.exists() && userDoc.data().cargo === "admin") {
+            // VERIFICAÇÃO DUPLA: Se o cargo for admin OU se for o seu e-mail específico de administrador
+            const ehAdminNoBanco = userDoc.exists() && userDoc.data().cargo === "admin";
+            const ehEmailAdminMaster = user.email === "thcompany011@gmail.com";
+
+            if (ehAdminNoBanco || ehEmailAdminMaster) {
                 console.log("✅ Sistema reconheceu como ADMIN!"); 
                 if (secaoCadastro) secaoCadastro.style.display = "block";
                 if (painelAvancado) painelAvancado.style.display = "flex"; 
