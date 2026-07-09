@@ -247,7 +247,9 @@ async function gerarRelatorio() {
         fim = intervalo.fim;
     }
 
-    // 1. Calcula a Carga Horária Esperada para o período selecionado
+    // Cria uma "Tolerância" de 14 horas pra frente (pescar a saída da madrugada)
+    const limiteTolerancia = new Date(fim.getTime() + (14 * 60 * 60 * 1000));
+
     let horasEsperadasNoPeriodo = 0;
     
     // Tabela da sua jornada: 0:Dom (7h), 1:Seg (6h), 2:Ter (0h), 3:Qua (6h), 4:Qui (6h), 5:Sex (9.5h), 6:Sab (9.5h)
@@ -270,7 +272,9 @@ async function gerarRelatorio() {
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const dataPonto = new Date(data.data);
-            if (dataPonto >= inicio && dataPonto <= fim) {
+            
+            // Puxa as batidas até a tolerância para não cortar a saída do plantão da noite
+            if (dataPonto >= inicio && dataPonto <= limiteTolerancia) {
                 if (horasPorUsuario[data.uid]) horasPorUsuario[data.uid].push({ tipo: data.tipo, data: dataPonto });
             }
         });
@@ -292,8 +296,13 @@ async function gerarRelatorio() {
 
             pontos.forEach((p) => {
                 if (p.tipo === "Entrada") {
-                    entradaAtiva = p.data;
+                    // SÓ aceita a Entrada se ela começou DENTRO do prazo (até domingo 23:59).
+                    // Entradas de segunda-feira de tarde serão ignoradas aqui!
+                    if (p.data <= fim) {
+                        entradaAtiva = p.data;
+                    }
                 } else if (p.tipo === "Saída" && entradaAtiva) {
+                    // Achou a Saída que faz par com a Entrada (mesmo que seja de madrugada no dia seguinte)
                     totalMS += (p.data - entradaAtiva);
                     entradaAtiva = null; 
                 }
