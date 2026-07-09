@@ -1,5 +1,5 @@
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { app } from "./firebase.js";
 import { registrarPonto } from "./ponto.js";
 
@@ -59,7 +59,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnGerarRelatorio = document.getElementById("btnGerarRelatorio");
     if (btnGerarRelatorio) {
-        btnGerarRelatorio.addEventListener("click", () => gerarRelatorioSemanal());
+        btnGerarRelatorio.addEventListener("click", () => gerarRelatorio());
+    }
+
+    // Botões da edição
+    const btnSalvarEdicao = document.getElementById("btnSalvarEdicao");
+    const btnCancelarEdicao = document.getElementById("btnCancelarEdicao");
+    const modalEditar = document.getElementById("modal-editar");
+
+    if (btnSalvarEdicao) {
+        btnSalvarEdicao.addEventListener("click", async () => {
+            const id = document.getElementById("editBatidaId").value;
+            const tipo = document.getElementById("editTipo").value;
+            const dataLocal = document.getElementById("editData").value;
+            
+            if(!id || !dataLocal) { alert("Preencha a data e hora!"); return; }
+            
+            try {
+                await updateDoc(doc(db, "batidas", id), {
+                    tipo: tipo,
+                    data: new Date(dataLocal).toISOString()
+                });
+                alert("Batida corrigida com sucesso!");
+                modalEditar.style.display = "none";
+                carregarPainelAdmin();
+                carregarHistorico(usuarioLogadoUid); // Atualiza também o histórico pessoal se for você
+            } catch (error) { console.error("Erro ao editar:", error); }
+        });
+    }
+
+    if (btnCancelarEdicao) {
+        btnCancelarEdicao.addEventListener("click", () => {
+            modalEditar.style.display = "none";
+        });
     }
 });
 
@@ -98,7 +130,6 @@ async function carregarHistorico(uid) {
         const pontos = [];
         querySnapshot.forEach((doc) => pontos.push(doc.data()));
         
-        // CORREÇÃO DA ORDEM: Agora os mais antigos ficam no topo (Cronológica)
         pontos.sort((a, b) => new Date(a.data) - new Date(b.data));
         
         pontos.forEach((ponto) => {
@@ -116,27 +147,74 @@ async function carregarPainelAdmin() {
         const querySnapshot = await getDocs(collection(db, "batidas"));
         listaGeral.innerHTML = "";
         const todosPontos = [];
+        
+        // Agora guardamos o ID do documento para poder editar/excluir
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             todosPontos.push({
+                id: doc.id,
                 nome: usuariosMap[data.uid] || "Desconhecido",
                 tipo: data.tipo,
                 data: data.data
             });
         });
         
-        // CORREÇÃO DA ORDEM GERAL: Mais antigos no topo
         todosPontos.sort((a, b) => new Date(a.data) - new Date(b.data));
         
         todosPontos.forEach((ponto) => {
             const li = document.createElement("li");
-            li.style.borderBottom = "1px solid #333";
-            li.style.padding = "5px 0";
-            li.innerHTML = `<span style="color: #3498db;">${ponto.nome}</span> - <strong>${ponto.tipo}</strong>: ${new Date(ponto.data).toLocaleString("pt-BR")}`;
+            
+            const infoTexto = document.createElement("span");
+            infoTexto.innerHTML = `<span style="color: #3498db;">${ponto.nome}</span> - <strong>${ponto.tipo}</strong>: ${new Date(ponto.data).toLocaleString("pt-BR")}`;
+            
+            const btnGroup = document.createElement("div");
+
+            const btnEdit = document.createElement("button");
+            btnEdit.textContent = "Editar";
+            btnEdit.className = "btn-acao";
+            btnEdit.style.backgroundColor = "#f39c12";
+            btnEdit.style.color = "white";
+            btnEdit.onclick = () => abrirEdicao(ponto.id, ponto.tipo, ponto.data);
+
+            const btnDel = document.createElement("button");
+            btnDel.textContent = "Excluir";
+            btnDel.className = "btn-acao";
+            btnDel.style.backgroundColor = "#e74c3c";
+            btnDel.style.color = "white";
+            btnDel.onclick = async () => {
+                if(confirm(`Tem certeza que deseja apagar a batida de ${ponto.nome}?`)) {
+                    await deleteDoc(doc(db, "batidas", ponto.id));
+                    carregarPainelAdmin();
+                    carregarHistorico(usuarioLogadoUid);
+                }
+            };
+
+            btnGroup.appendChild(btnEdit);
+            btnGroup.appendChild(btnDel);
+
+            li.appendChild(infoTexto);
+            li.appendChild(btnGroup);
             listaGeral.appendChild(li);
         });
     } catch (error) { console.error(error); }
 }
+
+// Função global para carregar os dados no formulário de edição
+window.abrirEdicao = function(id, tipo, dataIso) {
+    const modal = document.getElementById("modal-editar");
+    modal.style.display = "block";
+    
+    document.getElementById("editBatidaId").value = id;
+    document.getElementById("editTipo").value = tipo;
+    
+    // Converte o formato do Firebase (ISO) para o formato que o input aceita (YYYY-MM-DDTHH:MM)
+    const d = new Date(dataIso);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    document.getElementById("editData").value = d.toISOString().slice(0, 16);
+    
+    // Rola a página até a caixa de edição
+    modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
 
 function obterIntervaloSemanal() {
     const hoje = new Date();
@@ -156,12 +234,26 @@ function obterIntervaloSemanal() {
     return { inicio: quartaFeira, fim: tercaFeira };
 }
 
-async function gerarRelatorioSemanal() {
+async function gerarRelatorio() {
     const container = document.getElementById("container-relatorio");
     if (!container) return;
+
+    const inputInicio = document.getElementById("dataInicioRelatorio").value;
+    const inputFim = document.getElementById("dataFimRelatorio").value;
+    
+    let inicio, fim;
+
+    if (inputInicio && inputFim) {
+        inicio = new Date(inputInicio + "T00:00:00");
+        fim = new Date(inputFim + "T23:59:59");
+    } else {
+        const intervalo = obterIntervaloSemanal();
+        inicio = intervalo.inicio;
+        fim = intervalo.fim;
+    }
+
     try {
         const querySnapshot = await getDocs(collection(db, "batidas"));
-        const { inicio, fim } = obterIntervaloSemanal();
         const horasPorUsuario = {};
 
         Object.keys(usuariosMap).forEach(uid => horasPorUsuario[uid] = []);
@@ -185,10 +277,11 @@ async function gerarRelatorioSemanal() {
             let entradaAtiva = null;
 
             pontos.forEach((p) => {
-                if (p.tipo === "Entrada") entradaAtiva = p.data;
-                else if (p.tipo === "Saída" && entradaAtiva) {
+                if (p.tipo === "Entrada") {
+                    entradaAtiva = p.data;
+                } else if (p.tipo === "Saída" && entradaAtiva) {
                     totalMS += (p.data - entradaAtiva);
-                    entradaAtiva = null;
+                    entradaAtiva = null; 
                 }
             });
 
@@ -196,6 +289,6 @@ async function gerarRelatorioSemanal() {
             html += `<tr><td style="padding:8px;">${usuariosMap[uid]}</td><td style="padding:8px;"><strong>${totalHoras} hrs</strong></td></tr>`;
         }
         html += `</table>`;
-        container.innerHTML = `<h4>Período: ${inicio.toLocaleDateString("pt-BR")} até ${fim.toLocaleDateString("pt-BR")} (Terça)</h4>` + html;
+        container.innerHTML = `<h4>Período analisado: <br><span style="color:#f39c12;">${inicio.toLocaleDateString("pt-BR")} até ${fim.toLocaleDateString("pt-BR")}</span></h4>` + html;
     } catch (error) { console.error(error); }
 }
