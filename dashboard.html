@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PontoPro - Dashboard</title>
-    <!-- Adicione seu CSS aqui, se tiver um arquivo separado -->
     <style>
         body { font-family: Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
@@ -28,7 +27,6 @@
 
     <div class="container">
         
-        <!-- PAINEL DO COLABORADOR (Todos veem) -->
         <div class="card">
             <h2 style="text-align: center;">Painel de Ponto</h2>
             <button id="btnEntrada" class="btn-entrada">Bater Entrada</button>
@@ -38,14 +36,11 @@
         <div class="card">
             <h2 style="text-align: center;">Meus Registros</h2>
             <ul id="lista-pontos">
-                <!-- Registros do próprio usuário aparecerão aqui -->
-            </ul>
+                </ul>
         </div>
 
-        <!-- PAINEL DE CADASTRO ADMIN (Escondido por padrão) -->
         <div class="card admin-panel" id="secao-cadastro-admin" style="display: none;">
             <h2 style="text-align: center;">Cadastrar Colaborador</h2>
-            <!-- Coloque seu formulário de cadastro de usuário aqui (se tiver campos HTML, mantenha-os) -->
             <input type="text" id="nomeNovo" placeholder="Nome Completo">
             <input type="email" id="emailNovo" placeholder="E-mail">
             <input type="password" id="senhaNova" placeholder="Senha Provisória">
@@ -54,7 +49,6 @@
         
     </div>
 
-    <!-- PAINEL AVANÇADO ADMIN (Escondido por padrão) -->
     <div id="painel-avancado-admin" class="container" style="display: none; margin-top: 20px;">
         
         <div class="card admin-panel">
@@ -87,14 +81,11 @@
         <div class="card admin-panel" style="flex: 100%;">
             <h3>Todas as Batidas dos Colaboradores</h3>
             <ul id="lista-geral-pontos" style="max-height: 250px; overflow-y: auto;">
-                <!-- Registros de todos aparecerão aqui -->
-            </ul>
+                </ul>
         </div>
 
     </div>
 
-    <!-- Seus Scripts -->
-    <!-- Substitua se necessário para apontar para os caminhos corretos da sua pasta -->
     <script type="module" src="js/firebase.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/ponto.js"></script>
