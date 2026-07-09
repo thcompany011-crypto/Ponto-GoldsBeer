@@ -18,21 +18,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const secaoCadastro = document.getElementById("secao-cadastro-admin");
             const painelAvancado = document.getElementById("painel-avancado-admin");
 
-            // --- LOGS DE DIAGNÓSTICO ---
-            console.log("Seu UID de login atual é:", user.uid);
-            console.log("Seu e-mail de login atual é:", user.email);
-            console.log("O usuário existe no banco?", userDoc.exists());
-            if (userDoc.exists()) {
-                console.log("Dados que vieram do banco:", userDoc.data());
-            }
-            // ---------------------------
-
-            // VERIFICAÇÃO DUPLA: Se o cargo for admin OU se for o seu e-mail específico de administrador
-            const ehAdminNoBanco = userDoc.exists() && userDoc.data().cargo === "admin";
+            // Verifica se tem permissão (aceita cargo ou role)
+            let dadosBanco = userDoc.exists() ? userDoc.data() : {};
+            const ehAdminNoBanco = dadosBanco.cargo === "admin" || dadosBanco.role === "admin";
             const ehEmailAdminMaster = user.email === "thcompany011@gmail.com";
 
             if (ehAdminNoBanco || ehEmailAdminMaster) {
-                console.log("✅ Sistema reconheceu como ADMIN!"); 
                 if (secaoCadastro) secaoCadastro.style.display = "block";
                 if (painelAvancado) painelAvancado.style.display = "flex"; 
                 
@@ -40,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 popularSelectColaboradores();
                 carregarPainelAdmin();
             } else {
-                console.log("👤 Sistema reconheceu como COLABORADOR!"); 
                 if (secaoCadastro) secaoCadastro.style.display = "none";
                 if (painelAvancado) painelAvancado.style.display = "none";
             }
@@ -75,11 +65,17 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function mapearUsuarios() {
-    const querySnapshot = await getDocs(collection(db, "usuarios"));
-    usuariosMap = {};
-    querySnapshot.forEach((doc) => {
-        usuariosMap[doc.id] = doc.data().nome || doc.data().email;
-    });
+    try {
+        const querySnapshot = await getDocs(collection(db, "usuarios"));
+        usuariosMap = {};
+        querySnapshot.forEach((doc) => {
+            const dados = doc.data();
+            // Se o usuário não tiver nome ou email definido no banco, mostra o UID
+            usuariosMap[doc.id] = dados.nome || dados.email || `Usuário (${doc.id.substring(0, 5)})`;
+        });
+    } catch (error) {
+        console.error("Erro de permissão ao buscar colaboradores. Você atualizou as regras do Firestore?", error);
+    }
 }
 
 function popularSelectColaboradores() {
