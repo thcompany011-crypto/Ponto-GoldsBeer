@@ -3,125 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PontoPro - Dashboard</title>
+    <title>PontoPro - TH Company</title>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
-        .card { background-color: #1e1e1e; padding: 20px; border-radius: 10px; flex: 1; min-width: 300px; }
-        button { border: none; padding: 15px; width: 100%; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
-        .btn-entrada { background-color: #27ae60; color: white; }
-        .btn-saida { background-color: #e74c3c; color: white; }
-        input, select { width: calc(100% - 20px); padding: 10px; margin-bottom: 10px; background-color: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; color-scheme: dark; }
-        ul { list-style: none; padding: 0; }
-        li { padding: 10px 0; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        /* CSS PREMIUM - DARK MODE */
+        :root {
+            --bg-primary: #0f111a;
+            --bg-secondary: #1a1d29;
+            --bg-tertiary: #232838;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #2e364f;
+            --radius: 12px;
+            --transition: all 0.2s ease;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-primary); color: var(--text-main); font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.6; }
         
-        .admin-panel { background-color: #2c3e50; border: 1px solid #34495e; }
-        .form-group { margin-bottom: 10px; }
-        .form-group label { display: block; margin-bottom: 5px; color: #bbb; font-size: 14px; }
-        .row-datas { display: flex; gap: 10px; }
-        .btn-acao { padding: 5px 10px !important; width: auto !important; margin-bottom: 0 !important; font-size: 12px !important; margin-left: 5px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+        
+        header { border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; }
+        header h1 { font-size: 1.8rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+        header h1 i { color: var(--accent-color); }
+
+        .grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } .col-full { grid-column: span 2; } }
+
+        .card { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .card-header { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border-color); color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
+
+        /* Botões de Ponto Grandes */
+        .ponto-box { display: flex; gap: 1rem; }
+        .btn-ponto { flex: 1; padding: 1.5rem; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; transition: var(--transition); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .btn-ponto i { font-size: 1.8rem; }
+        .btn-entrada { background: linear-gradient(135deg, #10b981, #059669); }
+        .btn-entrada:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
+        .btn-saida { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .btn-saida:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3); }
+
+        /* Formulários */
+        .form-group { margin-bottom: 1.2rem; }
+        label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select { width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: white; padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.95rem; color-scheme: dark; transition: var(--transition); }
+        input:focus, select:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        
+        .row { display: flex; gap: 1rem; }
+        .row > div { flex: 1; }
+
+        .btn-primary { background: var(--accent-color); color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: var(--transition); width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        /* Listas */
+        ul { list-style: none; padding-right: 5px; }
+        .lista-pequena { max-height: 250px; overflow-y: auto; }
+        .lista-grande { max-height: 400px; overflow-y: auto; }
+        li { background: var(--bg-tertiary); margin-bottom: 8px; padding: 12px 15px; border-radius: 8px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
+        li.is-entrada { border-left-color: #10b981; }
+        li.is-saida { border-left-color: #ef4444; }
+        
+        .acoes-batida { display: flex; gap: 6px; }
+        .btn-acao { background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-muted); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: var(--transition); }
+        .btn-acao:hover { background: var(--bg-primary); color: white; border-color: var(--text-muted); }
+
+        /* Tabelas */
+        .table-wrapper { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; background: var(--bg-secondary); font-size: 0.95rem; }
+        th { background: var(--bg-tertiary); padding: 12px 15px; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* Badges de Saldo */
+        .badge { padding: 4px 10px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; display: inline-block; }
+        .badge-positivo { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-negativo { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-neutro { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+
+        /* Modal */
+        #modal-editar { display: none; border-top: 4px solid #f59e0b; margin-top: 20px; }
+        .modal-botoes { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-cancel { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-cancel:hover { background: var(--bg-tertiary); }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align: center;">PontoPro - Dashboard</h1>
-
     <div class="container">
-        <div class="card">
-            <h2 style="text-align: center;">Painel de Ponto</h2>
-            <button id="btnEntrada" class="btn-entrada">Bater Entrada</button>
-            <button id="btnSaida" class="btn-saida">Bater Saída</button>
-        </div>
-
-        <div class="card">
-            <h2 style="text-align: center;">Meus Registros</h2>
-            <ul id="lista-pontos"></ul>
-        </div>
-
-        <div class="card admin-panel" id="secao-cadastro-admin" style="display: none;">
-            <h2 style="text-align: center;">Cadastrar Colaborador</h2>
-            <input type="text" id="nomeNovo" placeholder="Nome Completo">
-            <input type="email" id="emailNovo" placeholder="E-mail">
-            <input type="password" id="senhaNova" placeholder="Senha Provisória">
-            <button id="btnCadastrarNovo" style="background-color: #2980b9; color: white;">Cadastrar Novo Usuário</button>
-        </div>
-    </div>
-
-    <div id="painel-avancado-admin" class="container" style="display: none; margin-top: 20px;">
-        
-        <div class="card admin-panel">
-            <h3>Incluir Batida Manual</h3>
-            <div class="form-group">
-                <label>Colaborador:</label>
-                <select id="selectColaboradorManual"></select>
+        <header>
+            <h1><i class="fa-solid fa-clock"></i> PontoPro</h1>
+            <div style="font-size: 0.9rem; color: var(--text-muted);">
+                TH Company
             </div>
-            <div class="form-group">
-                <label>Tipo de Registro:</label>
-                <select id="selectTipoManual">
-                    <option value="Entrada">Entrada</option>
-                    <option value="Saída">Saída</option>
-                </select>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header"><i class="fa-solid fa-fingerprint"></i> Registrar Ponto</div>
+                <div class="ponto-box">
+                    <button id="btnEntrada" class="btn-ponto btn-entrada">
+                        <i class="fa-solid fa-right-to-bracket"></i> Bater Entrada
+                    </button>
+                    <button id="btnSaida" class="btn-ponto btn-saida">
+                        <i class="fa-solid fa-right-from-bracket"></i> Bater Saída
+                    </button>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Data e Hora da Batida:</label>
-                <input type="datetime-local" id="inputDataManual">
+
+            <div class="card">
+                <div class="card-header"><i class="fa-solid fa-list-check"></i> Meus Registros Recentes</div>
+                <ul id="lista-pontos" class="lista-pequena"></ul>
             </div>
-            <button id="btnSalvarManual" style="background: #e67e22; color: white;">Salvar Batida Manual</button>
         </div>
 
-        <div class="card admin-panel">
-            <h3>Relatório de Horas</h3>
-            <p style="font-size: 12px; color: #ccc;">Escolha as datas abaixo. Deixe em branco para puxar a semana atual.</p>
+        <div id="painel-avancado-admin" style="display: none;">
             
-            <div class="row-datas">
-                <div style="flex: 1;">
-                    <label style="font-size: 12px; color: #bbb;">Data Início:</label>
-                    <input type="date" id="dataInicioRelatorio">
+            <div class="grid">
+                <div class="card" id="secao-cadastro-admin">
+                    <div class="card-header"><i class="fa-solid fa-user-plus"></i> Novo Colaborador</div>
+                    <div class="form-group">
+                        <input type="text" id="nomeNovo" placeholder="Nome Completo">
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="emailNovo" placeholder="E-mail Corporativo">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="senhaNova" placeholder="Senha Provisória">
+                    </div>
+                    <button id="btnCadastrarNovo" class="btn-primary"><i class="fa-solid fa-check"></i> Cadastrar Usuário</button>
                 </div>
-                <div style="flex: 1;">
-                    <label style="font-size: 12px; color: #bbb;">Data Fim:</label>
-                    <input type="date" id="dataFimRelatorio">
+
+                <div class="card">
+                    <div class="card-header"><i class="fa-solid fa-pen-to-square"></i> Lançamento Manual</div>
+                    <div class="form-group">
+                        <label>Colaborador</label>
+                        <select id="selectColaboradorManual"></select>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="selectTipoManual">
+                                <option value="Entrada">Entrada</option>
+                                <option value="Saída">Saída</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Data / Hora</label>
+                            <input type="datetime-local" id="inputDataManual">
+                        </div>
+                    </div>
+                    <button id="btnSalvarManual" class="btn-primary" style="background: #f59e0b;"><i class="fa-solid fa-save"></i> Inserir Registro</button>
                 </div>
             </div>
 
-            <button id="btnGerarRelatorio" style="background: #9b59b6; color: white;">Gerar Relatório</button>
-            <div id="container-relatorio" style="margin-top: 15px;"></div>
-        </div>
+            <div class="grid">
+                <div class="card col-full">
+                    <div class="card-header"><i class="fa-solid fa-chart-line"></i> Relatório Financeiro e Banco de Horas</div>
+                    
+                    <div class="row" style="margin-bottom: 1rem; align-items: flex-end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Data Início</label>
+                            <input type="date" id="dataInicioRelatorio">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Data Fim</label>
+                            <input type="date" id="dataFimRelatorio">
+                        </div>
+                        <div style="flex: 1;">
+                            <button id="btnGerarRelatorio" class="btn-primary" style="background: #8b5cf6;"><i class="fa-solid fa-filter"></i> Processar Fechamento</button>
+                        </div>
+                    </div>
 
-        <div id="modal-editar" class="card admin-panel" style="display: none; border: 2px solid #f1c40f; flex: 100%;">
-            <h3 style="color: #f1c40f;">Corrigir Batida</h3>
-            <input type="hidden" id="editBatidaId">
-            <div class="row-datas">
-                <div class="form-group" style="flex: 1;">
-                    <label>Alterar Tipo:</label>
-                    <select id="editTipo">
-                        <option value="Entrada">Entrada</option>
-                        <option value="Saída">Saída</option>
-                    </select>
-                </div>
-                <div class="form-group" style="flex: 2;">
-                    <label>Alterar Data e Hora:</label>
-                    <input type="datetime-local" id="editData">
+                    <div id="container-relatorio">
+                        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 20px 0;">
+                            Selecione as datas acima e clique em "Processar Fechamento" para visualizar.
+                        </p>
+                    </div>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button id="btnSalvarEdicao" style="background: #27ae60; color: white;">Salvar Correção</button>
-                <button id="btnCancelarEdicao" style="background: #7f8c8d; color: white;">Cancelar</button>
+
+            <div id="modal-editar" class="card col-full">
+                <div class="card-header" style="color: #f59e0b;"><i class="fa-solid fa-wrench"></i> Corrigir Registro Específico</div>
+                <input type="hidden" id="editBatidaId">
+                <div class="row">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="editTipo">
+                            <option value="Entrada">Entrada</option>
+                            <option value="Saída">Saída</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+                        <label>Data / Hora (Correta)</label>
+                        <input type="datetime-local" id="editData">
+                    </div>
+                </div>
+                <div class="modal-botoes">
+                    <button id="btnSalvarEdicao" class="btn-primary" style="background: #10b981; width: auto;"><i class="fa-solid fa-check"></i> Salvar Correção</button>
+                    <button id="btnCancelarEdicao" class="btn-primary btn-cancel" style="width: auto;">Cancelar</button>
+                </div>
             </div>
-        </div>
 
-        <div class="card admin-panel" style="flex: 100%;">
-            <h3>Todas as Batidas dos Colaboradores</h3>
-            <ul id="lista-geral-pontos" style="max-height: 400px; overflow-y: auto;"></ul>
-        </div>
+            <div class="grid">
+                <div class="card col-full">
+                    <div class="card-header"><i class="fa-solid fa-database"></i> Auditoria: Todas as Batidas da Empresa</div>
+                    <ul id="lista-geral-pontos" class="lista-grande"></ul>
+                </div>
+            </div>
 
-    </div>
+        </div> </div>
 
     <script type="module" src="js/firebase.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/ponto.js"></script>
     <script type="module" src="js/dashboard.js"></script>
-
 </body>
 </html>
