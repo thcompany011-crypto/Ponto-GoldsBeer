@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PontoPro - Dashboard</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
         body { font-family: Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
@@ -11,14 +12,14 @@
         button { border: none; padding: 15px; width: 100%; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
         .btn-entrada { background-color: #27ae60; color: white; }
         .btn-saida { background-color: #e74c3c; color: white; }
-        input, select { width: calc(100% - 20px); padding: 10px; margin-bottom: 10px; background-color: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; }
+        input, select { width: calc(100% - 20px); padding: 10px; margin-bottom: 10px; background-color: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; color-scheme: dark; }
         ul { list-style: none; padding: 0; }
         li { padding: 8px 0; border-bottom: 1px solid #333; }
         
-        /* Estilos específicos do Admin */
         .admin-panel { background-color: #2c3e50; border: 1px solid #34495e; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; margin-bottom: 5px; color: #bbb; font-size: 14px; }
+        .row-datas { display: flex; gap: 10px; }
     </style>
 </head>
 <body>
@@ -26,7 +27,6 @@
     <h1 style="text-align: center;">PontoPro - Dashboard</h1>
 
     <div class="container">
-        
         <div class="card">
             <h2 style="text-align: center;">Painel de Ponto</h2>
             <button id="btnEntrada" class="btn-entrada">Bater Entrada</button>
@@ -35,8 +35,7 @@
 
         <div class="card">
             <h2 style="text-align: center;">Meus Registros</h2>
-            <ul id="lista-pontos">
-                </ul>
+            <ul id="lista-pontos"></ul>
         </div>
 
         <div class="card admin-panel" id="secao-cadastro-admin" style="display: none;">
@@ -46,7 +45,6 @@
             <input type="password" id="senhaNova" placeholder="Senha Provisória">
             <button id="btnCadastrarNovo" style="background-color: #2980b9; color: white;">Cadastrar Novo Usuário</button>
         </div>
-        
     </div>
 
     <div id="painel-avancado-admin" class="container" style="display: none; margin-top: 20px;">
@@ -72,16 +70,27 @@
         </div>
 
         <div class="card admin-panel">
-            <h3>Relatório de Horas Semanais</h3>
-            <p style="font-size: 12px; color: #ccc;">Ciclo de quarta-feira até o fechamento na terça-feira.</p>
-            <button id="btnGerarRelatorio" style="background: #9b59b6; color: white;">Gerar Relatório Atual</button>
+            <h3>Relatório de Horas</h3>
+            <p style="font-size: 12px; color: #ccc;">Escolha as datas abaixo. Deixe em branco para puxar a semana atual (Qua a Ter).</p>
+            
+            <div class="row-datas">
+                <div style="flex: 1;">
+                    <label style="font-size: 12px; color: #bbb;">Data Início:</label>
+                    <input type="date" id="dataInicioRelatorio">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 12px; color: #bbb;">Data Fim:</label>
+                    <input type="date" id="dataFimRelatorio">
+                </div>
+            </div>
+
+            <button id="btnGerarRelatorio" style="background: #9b59b6; color: white;">Gerar Relatório</button>
             <div id="container-relatorio" style="margin-top: 15px;"></div>
         </div>
 
         <div class="card admin-panel" style="flex: 100%;">
             <h3>Todas as Batidas dos Colaboradores</h3>
-            <ul id="lista-geral-pontos" style="max-height: 250px; overflow-y: auto;">
-                </ul>
+            <ul id="lista-geral-pontos" style="max-height: 250px; overflow-y: auto;"></ul>
         </div>
 
     </div>
