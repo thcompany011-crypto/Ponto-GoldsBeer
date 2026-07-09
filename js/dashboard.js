@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const secaoCadastro = document.getElementById("secao-cadastro-admin");
             const painelAvancado = document.getElementById("painel-avancado-admin");
 
-            // Verifica se tem permissão (aceita cargo ou role)
             let dadosBanco = userDoc.exists() ? userDoc.data() : {};
             const ehAdminNoBanco = dadosBanco.cargo === "admin" || dadosBanco.role === "admin";
             const ehEmailAdminMaster = user.email === "thcompany011@gmail.com";
@@ -70,11 +69,10 @@ async function mapearUsuarios() {
         usuariosMap = {};
         querySnapshot.forEach((doc) => {
             const dados = doc.data();
-            // Se o usuário não tiver nome ou email definido no banco, mostra o UID
             usuariosMap[doc.id] = dados.nome || dados.email || `Usuário (${doc.id.substring(0, 5)})`;
         });
     } catch (error) {
-        console.error("Erro de permissão ao buscar colaboradores. Você atualizou as regras do Firestore?", error);
+        console.error("Erro de permissão ao buscar colaboradores.", error);
     }
 }
 
@@ -99,7 +97,10 @@ async function carregarHistorico(uid) {
         lista.innerHTML = ""; 
         const pontos = [];
         querySnapshot.forEach((doc) => pontos.push(doc.data()));
-        pontos.sort((a, b) => new Date(b.data) - new Date(a.data));
+        
+        // CORREÇÃO DA ORDEM: Agora os mais antigos ficam no topo (Cronológica)
+        pontos.sort((a, b) => new Date(a.data) - new Date(b.data));
+        
         pontos.forEach((ponto) => {
             const li = document.createElement("li");
             li.innerHTML = `<strong>${ponto.tipo}</strong>: ${new Date(ponto.data).toLocaleString("pt-BR")}`;
@@ -123,7 +124,10 @@ async function carregarPainelAdmin() {
                 data: data.data
             });
         });
-        todosPontos.sort((a, b) => new Date(b.data) - new Date(a.data));
+        
+        // CORREÇÃO DA ORDEM GERAL: Mais antigos no topo
+        todosPontos.sort((a, b) => new Date(a.data) - new Date(b.data));
+        
         todosPontos.forEach((ponto) => {
             const li = document.createElement("li");
             li.style.borderBottom = "1px solid #333";
