@@ -3,12 +3,14 @@ import { app } from "./firebase.js";
 
 const db = getFirestore(app);
 
-export const registrarPonto = async (tipo, uid) => {
+export const registrarPonto = async (tipo, uid, dataCustomizada = null) => {
     try {
+        const dataPonto = dataCustomizada ? new Date(dataCustomizada).toISOString() : new Date().toISOString();
+        
         await addDoc(collection(db, "batidas"), {
             uid: uid,
             tipo: tipo,
-            data: new Date().toISOString()
+            data: dataPonto
         });
         alert("Ponto de " + tipo + " registrado com sucesso!");
     } catch (error) {
