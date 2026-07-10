@@ -6,9 +6,10 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 let usuarioLogadoUid = null;
 let usuariosMap = {}; 
+let emailsMap = {}; 
 
 // ==========================================
-// FUNÇÃO AUXILIAR: REGISTRAR PONTO
+// FUNÇÕES AUXILIARES
 // ==========================================
 async function registrarPonto(tipo, uid, dataHoraManual = null) {
     try {
@@ -23,6 +24,16 @@ async function registrarPonto(tipo, uid, dataHoraManual = null) {
         console.error("Erro ao registrar ponto:", error);
         alert("Erro ao registrar o ponto. Verifique o console.");
     }
+}
+
+// Converte horas decimais para um formato bonito (Ex: 3.5 -> "3h 30m")
+function formatarTempo(horasDecimais) {
+    let h = Math.floor(horasDecimais);
+    let m = Math.round((horasDecimais - h) * 60);
+    if (m === 60) { h += 1; m = 0; }
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
 }
 
 // ==========================================
@@ -41,7 +52,6 @@ document.addEventListener("DOMContentLoaded", () => {
             let dadosBanco = userDoc.exists() ? userDoc.data() : {};
             const ehAdminNoBanco = dadosBanco.cargo === "admin" || dadosBanco.role === "admin";
             
-            // SEU EMAIL DE ADMIN MASTER
             const ehEmailAdminMaster = user.email === "thcompany011@gmail.com" || user.email === "admin@teste.com"; 
 
             if (ehAdminNoBanco || ehEmailAdminMaster) {
@@ -59,13 +69,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) { console.error("Erro no dashboard:", error); }
     });
 
-    // Configuração dos Botões de Batida Rápida
     const btnEntrada = document.getElementById("btnEntrada");
     const btnSaida = document.getElementById("btnSaida");
     if (btnEntrada) btnEntrada.addEventListener("click", () => registrarPonto("Entrada", usuarioLogadoUid).then(() => { carregarHistorico(usuarioLogadoUid); carregarPainelAdmin(); }));
     if (btnSaida) btnSaida.addEventListener("click", () => registrarPonto("Saída", usuarioLogadoUid).then(() => { carregarHistorico(usuarioLogadoUid); carregarPainelAdmin(); }));
 
-    // Lançamento Manual pelo Administrador
     const btnSalvarManual = document.getElementById("btnSalvarManual");
     if (btnSalvarManual) {
         btnSalvarManual.addEventListener("click", async () => {
@@ -81,13 +89,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Botão de Processar Relatório Financeiro
     const btnGerarRelatorio = document.getElementById("btnGerarRelatorio");
     if (btnGerarRelatorio) {
         btnGerarRelatorio.addEventListener("click", () => gerarRelatorio());
     }
 
-    // Modal de Edição de Ponto Aberto pelo Admin
     const btnSalvarEdicao = document.getElementById("btnSalvarEdicao");
     const btnCancelarEdicao = document.getElementById("btnCancelarEdicao");
     const modalEditar = document.getElementById("modal-editar");
@@ -127,13 +133,13 @@ async function mapearUsuarios() {
     try {
         const querySnapshot = await getDocs(collection(db, "usuarios"));
         usuariosMap = {};
+        emailsMap = {};
         querySnapshot.forEach((doc) => {
             const dados = doc.data();
             usuariosMap[doc.id] = dados.nome || dados.email || `Usuário (${doc.id.substring(0, 5)})`;
+            emailsMap[doc.id] = dados.email || ""; 
         });
-    } catch (error) {
-        console.error("Erro ao buscar colaboradores:", error);
-    }
+    } catch (error) { console.error("Erro ao buscar colaboradores:", error); }
 }
 
 function popularSelectColaboradores() {
@@ -170,7 +176,7 @@ async function carregarHistorico(uid) {
 }
 
 // ==========================================
-// AUDITORIA E GERENCIAMENTO ADMIN (AGRUPADO)
+// AUDITORIA E GERENCIAMENTO ADMIN COM HORAS
 // ==========================================
 async function carregarPainelAdmin() {
     const listaGeral = document.getElementById("lista-geral-pontos");
@@ -188,6 +194,7 @@ async function carregarPainelAdmin() {
         });
 
         const jornadasParaExibir = [];
+        const tempoTotalDiaUsuario = {}; // Guarda o total de horas trabalhadas no dia inteiro
 
         for (const uid in batidasPorUsuario) {
             const batidas = batidasPorUsuario[uid];
@@ -199,41 +206,31 @@ async function carregarPainelAdmin() {
             batidas.forEach((batida) => {
                 if (batida.tipo === "Entrada") {
                     if (entradaPendente) {
-                        jornadasParaExibir.push({
-                            nome: nomeColaborador,
-                            dataReferencia: new Date(entradaPendente.data),
-                            entrada: entradaPendente,
-                            saida: null
-                        });
+                        jornadasParaExibir.push({ uid: uid, nome: nomeColaborador, dataReferencia: new Date(entradaPendente.data), entrada: entradaPendente, saida: null });
                     }
                     entradaPendente = batida;
                 } else if (batida.tipo === "Saída") {
                     if (entradaPendente) {
-                        jornadasParaExibir.push({
-                            nome: nomeColaborador,
-                            dataReferencia: new Date(entradaPendente.data),
-                            entrada: entradaPendente,
-                            saida: batida
-                        });
+                        const dateRef = new Date(entradaPendente.data);
+                        jornadasParaExibir.push({ uid: uid, nome: nomeColaborador, dataReferencia: dateRef, entrada: entradaPendente, saida: batida });
+                        
+                        // Soma o tempo para o dia
+                        const dataChave = dateRef.toLocaleDateString("pt-BR");
+                        const chaveDiaUser = `${uid}_${dataChave}`;
+                        const duracaoMs = new Date(batida.data) - dateRef;
+                        
+                        if (!tempoTotalDiaUsuario[chaveDiaUser]) tempoTotalDiaUsuario[chaveDiaUser] = 0;
+                        tempoTotalDiaUsuario[chaveDiaUser] += duracaoMs;
+                        
                         entradaPendente = null;
                     } else {
-                        jornadasParaExibir.push({
-                            nome: nomeColaborador,
-                            dataReferencia: new Date(batida.data),
-                            entrada: null,
-                            saida: batida
-                        });
+                        jornadasParaExibir.push({ uid: uid, nome: nomeColaborador, dataReferencia: new Date(batida.data), entrada: null, saida: batida });
                     }
                 }
             });
 
             if (entradaPendente) {
-                jornadasParaExibir.push({
-                    nome: nomeColaborador,
-                    dataReferencia: new Date(entradaPendente.data),
-                    entrada: entradaPendente,
-                    saida: null
-                });
+                jornadasParaExibir.push({ uid: uid, nome: nomeColaborador, dataReferencia: new Date(entradaPendente.data), entrada: entradaPendente, saida: null });
             }
         }
 
@@ -256,6 +253,39 @@ async function carregarPainelAdmin() {
             const horaEntrada = jornada.entrada ? new Date(jornada.entrada.data).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : "--:--";
             const horaSaida = jornada.saida ? new Date(jornada.saida.data).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : "Trabalhando...";
 
+            let turnoDuracao = "";
+            let badgeExtra = "";
+
+            if (jornada.entrada && jornada.saida) {
+                // Turno Fechado: Duração exata do turno
+                const duracaoTurnoHoras = (new Date(jornada.saida.data) - new Date(jornada.entrada.data)) / (1000 * 60 * 60);
+                turnoDuracao = `<span style="color:#cbd5e1; font-size: 0.9em; margin-left: 6px;">(${formatarTempo(duracaoTurnoHoras)})</span>`;
+
+                // Pega o total somado de todos os turnos do dia
+                const chaveDiaUser = `${jornada.uid}_${dataFormatada}`;
+                const totalDiaHoras = tempoTotalDiaUsuario[chaveDiaUser] / (1000 * 60 * 60);
+
+                // Verifica a meta de horas diárias
+                const emailColab = emailsMap[jornada.uid] || "";
+                const cargaDiaria = (emailColab === "math3usmoraes@gmail.com") 
+                    ? [8, 0, 8, 8, 8, 8, 8][jornada.dataReferencia.getDay()] 
+                    : [7, 6, 0, 6, 6, 9.5, 9.5][jornada.dataReferencia.getDay()];
+
+                if (totalDiaHoras > cargaDiaria && cargaDiaria > 0) {
+                    badgeExtra = `<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 2px 8px; border-radius: 6px; font-size: 0.75em; margin-left: 8px; font-weight: 600; text-transform: uppercase;">+ ${formatarTempo(totalDiaHoras - cargaDiaria)} Extra</span>`;
+                } else if (totalDiaHoras < cargaDiaria && cargaDiaria > 0) {
+                    badgeExtra = `<span style="background: rgba(239,68,68,0.15); color: #ef4444; padding: 2px 8px; border-radius: 6px; font-size: 0.75em; margin-left: 8px; font-weight: 600; text-transform: uppercase;">- ${formatarTempo(cargaDiaria - totalDiaHoras)} Pendente</span>`;
+                } else if (cargaDiaria > 0) {
+                    badgeExtra = `<span style="background: rgba(59,130,246,0.15); color: #3b82f6; padding: 2px 8px; border-radius: 6px; font-size: 0.75em; margin-left: 8px; font-weight: 600; text-transform: uppercase;">Carga Exata</span>`;
+                } else if (cargaDiaria === 0 && totalDiaHoras > 0) {
+                    badgeExtra = `<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 2px 8px; border-radius: 6px; font-size: 0.75em; margin-left: 8px; font-weight: 600; text-transform: uppercase;">+ ${formatarTempo(totalDiaHoras)} Extra (Folga)</span>`;
+                }
+            } else if (jornada.entrada && !jornada.saida) {
+                // Turno Aberto (Trabalhando agora) - Atualiza ao recarregar a tela
+                const parcialHoras = (new Date() - new Date(jornada.entrada.data)) / (1000 * 60 * 60);
+                turnoDuracao = `<span style="color:#fbbf24; font-size: 0.9em; margin-left: 6px; font-style: italic;">(${formatarTempo(parcialHoras)} até o momento)</span>`;
+            }
+
             const infoTexto = document.createElement("div");
             infoTexto.innerHTML = `
                 <strong style="color:#fff;">${jornada.nome}</strong>
@@ -263,6 +293,8 @@ async function carregarPainelAdmin() {
                 <span style="color:#3b82f6; font-weight:600;">${diaTexto} (${dataFormatada})</span>
                 <span style="color:#94a3b8; margin: 0 6px;">•</span>
                 <span style="color:#e2e8f0;">${horaEntrada} às ${horaSaida}</span>
+                ${turnoDuracao}
+                ${badgeExtra}
             `;
             
             const btnGroup = document.createElement("div");
@@ -298,9 +330,7 @@ async function carregarPainelAdmin() {
             listaGeral.appendChild(li);
         });
 
-    } catch (error) { 
-        console.error("Erro ao carregar o painel agrupado:", error); 
-    }
+    } catch (error) { console.error("Erro ao carregar o painel agrupado:", error); }
 }
 
 window.abrirEdicao = function(id, tipo, dataIso) {
@@ -334,20 +364,8 @@ async function gerarRelatorio() {
 
     let inicio = new Date(inputInicio + "T00:00:00");
     let fim = new Date(inputFim + "T23:59:59");
-    
     const limiteTolerancia = new Date(fim.getTime() + (14 * 60 * 60 * 1000));
     
-    let horasEsperadasNoPeriodo = 0;
-    const jornadaSemanal = [7, 6, 0, 6, 6, 9.5, 9.5]; 
-    
-    let dataAtualLoop = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
-    const dataFimLoop = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
-
-    while (dataAtualLoop <= dataFimLoop) {
-        horasEsperadasNoPeriodo += jornadaSemanal[dataAtualLoop.getDay()];
-        dataAtualLoop.setDate(dataAtualLoop.getDate() + 1);
-    }
-
     try {
         const querySnapshot = await getDocs(collection(db, "batidas"));
         const horasPorUsuario = {};
@@ -375,6 +393,20 @@ async function gerarRelatorio() {
                     </tr>`;
 
         for (const uid in horasPorUsuario) {
+            const emailColab = emailsMap[uid] || "";
+            const jornadaPadrao = [7, 6, 0, 6, 6, 9.5, 9.5]; 
+            const jornadaMatheus = [8, 0, 8, 8, 8, 8, 8]; 
+            const jornadaAplicada = emailColab === "math3usmoraes@gmail.com" ? jornadaMatheus : jornadaPadrao;
+
+            let horasEsperadasNoPeriodo = 0;
+            let dataAtualLoop = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+            const dataFimLoop = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
+
+            while (dataAtualLoop <= dataFimLoop) {
+                horasEsperadasNoPeriodo += jornadaAplicada[dataAtualLoop.getDay()];
+                dataAtualLoop.setDate(dataAtualLoop.getDate() + 1);
+            }
+
             const pontos = horasPorUsuario[uid];
             pontos.sort((a, b) => a.data - b.data); 
 
