@@ -54,11 +54,13 @@ document.addEventListener("DOMContentLoaded", () => {
             
             const ehEmailAdminMaster = user.email === "thcompany011@gmail.com" || user.email === "admin@teste.com"; 
 
+            // É importante mapear os usuários PRIMEIRO, para o painel do colaborador poder usar o emailsMap
+            await mapearUsuarios();
+
             if (ehAdminNoBanco || ehEmailAdminMaster) {
                 if (secaoCadastro) secaoCadastro.style.display = "block";
                 if (painelAvancado) painelAvancado.style.display = "block";
                 
-                await mapearUsuarios();
                 popularSelectColaboradores();
                 carregarPainelAdmin();
             } else {
@@ -127,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// FUNÇÕES DE MAPEAMENTO E HISTÓRICO
+// FUNÇÕES DE MAPEAMENTO
 // ==========================================
 async function mapearUsuarios() {
     try {
@@ -154,6 +156,9 @@ function popularSelectColaboradores() {
     }
 }
 
+// ==========================================
+// HISTÓRICO DO COLABORADOR (PREMIUM)
+// ==========================================
 async function carregarHistorico(uid) {
     const lista = document.getElementById("lista-pontos");
     if (!lista) return;
@@ -161,22 +166,112 @@ async function carregarHistorico(uid) {
         const q = query(collection(db, "batidas"), where("uid", "==", uid));
         const querySnapshot = await getDocs(q);
         lista.innerHTML = ""; 
-        const pontos = [];
-        querySnapshot.forEach((doc) => pontos.push(doc.data()));
         
-        pontos.sort((a, b) => new Date(a.data) - new Date(b.data));
-        
-        pontos.forEach((ponto) => {
+        const batidas = [];
+        querySnapshot.forEach((doc) => batidas.push(doc.data()));
+        batidas.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+        const jornadasParaExibir = [];
+        const tempoTotalDia = {};
+
+        let entradaPendente = null;
+
+        batidas.forEach((batida) => {
+            if (batida.tipo === "Entrada") {
+                if (entradaPendente) {
+                    jornadasParaExibir.push({ dataReferencia: new Date(entradaPendente.data), entrada: entradaPendente, saida: null });
+                }
+                entradaPendente = batida;
+            } else if (batida.tipo === "Saída") {
+                if (entradaPendente) {
+                    const dateRef = new Date(entradaPendente.data);
+                    jornadasParaExibir.push({ dataReferencia: dateRef, entrada: entradaPendente, saida: batida });
+                    
+                    const dataChave = dateRef.toLocaleDateString("pt-BR");
+                    const duracaoMs = new Date(batida.data) - dateRef;
+                    
+                    if (!tempoTotalDia[dataChave]) tempoTotalDia[dataChave] = 0;
+                    tempoTotalDia[dataChave] += duracaoMs;
+                    
+                    entradaPendente = null;
+                } else {
+                    jornadasParaExibir.push({ dataReferencia: new Date(batida.data), entrada: null, saida: batida });
+                }
+            }
+        });
+
+        if (entradaPendente) {
+            jornadasParaExibir.push({ dataReferencia: new Date(entradaPendente.data), entrada: entradaPendente, saida: null });
+        }
+
+        jornadasParaExibir.sort((a, b) => b.dataReferencia - a.dataReferencia);
+
+        const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+        jornadasParaExibir.forEach((jornada) => {
             const li = document.createElement("li");
-            li.className = ponto.tipo === "Entrada" ? "is-entrada" : "is-saida";
-            li.innerHTML = `<strong>${ponto.tipo}</strong>: ${new Date(ponto.data).toLocaleString("pt-BR")}`;
+            li.style.background = "#1e293b";
+            li.style.padding = "14px 18px";
+            li.style.borderRadius = "8px";
+            li.style.display = "flex";
+            li.style.flexDirection = "column";
+            li.style.gap = "8px";
+            
+            if (jornada.entrada && jornada.saida) li.style.borderLeft = "4px solid #10b981"; 
+            else li.style.borderLeft = "4px solid #f59e0b"; 
+            
+            const diaTexto = diasSemana[jornada.dataReferencia.getDay()];
+            const dataFormatada = jornada.dataReferencia.toLocaleDateString("pt-BR");
+            const horaEntrada = jornada.entrada ? new Date(jornada.entrada.data).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : "--:--";
+            const horaSaida = jornada.saida ? new Date(jornada.saida.data).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : "Trabalhando...";
+
+            let turnoDuracao = "";
+            let badgeExtra = "";
+
+            if (jornada.entrada && jornada.saida) {
+                const duracaoTurnoHoras = (new Date(jornada.saida.data) - new Date(jornada.entrada.data)) / (1000 * 60 * 60);
+                turnoDuracao = `<span style="color:#94a3b8; font-size: 0.9em;">Duração: ${formatarTempo(duracaoTurnoHoras)}</span>`;
+
+                const totalDiaHoras = tempoTotalDia[dataFormatada] / (1000 * 60 * 60);
+                const emailColab = emailsMap[uid] || "";
+                
+                const cargaDiaria = (emailColab === "math3usmoraes@gmail.com") 
+                    ? [8, 0, 8, 8, 8, 8, 8][jornada.dataReferencia.getDay()] 
+                    : [7, 6, 0, 6, 6, 9.5, 9.5][jornada.dataReferencia.getDay()];
+
+                if (totalDiaHoras > cargaDiaria && cargaDiaria > 0) {
+                    badgeExtra = `<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 3px 8px; border-radius: 6px; font-size: 0.8em; font-weight: 600;">+ ${formatarTempo(totalDiaHoras - cargaDiaria)} Extra</span>`;
+                } else if (totalDiaHoras < cargaDiaria && cargaDiaria > 0) {
+                    badgeExtra = `<span style="background: rgba(239,68,68,0.15); color: #ef4444; padding: 3px 8px; border-radius: 6px; font-size: 0.8em; font-weight: 600;">- ${formatarTempo(cargaDiaria - totalDiaHoras)} Pendente</span>`;
+                } else if (cargaDiaria > 0) {
+                    badgeExtra = `<span style="background: rgba(59,130,246,0.15); color: #3b82f6; padding: 3px 8px; border-radius: 6px; font-size: 0.8em; font-weight: 600;">Carga Exata</span>`;
+                } else if (cargaDiaria === 0 && totalDiaHoras > 0) {
+                    badgeExtra = `<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 3px 8px; border-radius: 6px; font-size: 0.8em; font-weight: 600;">+ ${formatarTempo(totalDiaHoras)} Extra (Folga)</span>`;
+                }
+            } else if (jornada.entrada && !jornada.saida) {
+                const parcialHoras = (new Date() - new Date(jornada.entrada.data)) / (1000 * 60 * 60);
+                turnoDuracao = `<span style="color:#fbbf24; font-size: 0.9em; font-style: italic;">Trabalhando a ${formatarTempo(parcialHoras)}</span>`;
+            }
+
+            li.innerHTML = `
+                <div style="display:flex; justify-content: space-between; align-items: center;">
+                    <strong style="color:#3b82f6;">${diaTexto} (${dataFormatada})</strong>
+                    ${badgeExtra}
+                </div>
+                <div style="color:#e2e8f0; font-size: 1.05rem;">
+                    <i class="fa-regular fa-clock" style="margin-right: 5px; color:#94a3b8;"></i> 
+                    ${horaEntrada} às ${horaSaida}
+                </div>
+                <div>${turnoDuracao}</div>
+            `;
+            
             lista.appendChild(li);
         });
     } catch (error) { console.error(error); }
 }
 
 // ==========================================
-// AUDITORIA E GERENCIAMENTO ADMIN COM HORAS
+// AUDITORIA E GERENCIAMENTO ADMIN 
 // ==========================================
 async function carregarPainelAdmin() {
     const listaGeral = document.getElementById("lista-geral-pontos");
@@ -194,7 +289,7 @@ async function carregarPainelAdmin() {
         });
 
         const jornadasParaExibir = [];
-        const tempoTotalDiaUsuario = {}; // Guarda o total de horas trabalhadas no dia inteiro
+        const tempoTotalDiaUsuario = {}; 
 
         for (const uid in batidasPorUsuario) {
             const batidas = batidasPorUsuario[uid];
@@ -214,7 +309,6 @@ async function carregarPainelAdmin() {
                         const dateRef = new Date(entradaPendente.data);
                         jornadasParaExibir.push({ uid: uid, nome: nomeColaborador, dataReferencia: dateRef, entrada: entradaPendente, saida: batida });
                         
-                        // Soma o tempo para o dia
                         const dataChave = dateRef.toLocaleDateString("pt-BR");
                         const chaveDiaUser = `${uid}_${dataChave}`;
                         const duracaoMs = new Date(batida.data) - dateRef;
@@ -257,31 +351,27 @@ async function carregarPainelAdmin() {
             let badgeExtra = "";
 
             if (jornada.entrada && jornada.saida) {
-                // Turno Fechado: Duração exata do turno
                 const duracaoTurnoHoras = (new Date(jornada.saida.data) - new Date(jornada.entrada.data)) / (1000 * 60 * 60);
                 turnoDuracao = `<span style="color:#cbd5e1; font-size: 0.9em; margin-left: 6px;">(${formatarTempo(duracaoTurnoHoras)})</span>`;
 
-                // Pega o total somado de todos os turnos do dia
                 const chaveDiaUser = `${jornada.uid}_${dataFormatada}`;
                 const totalDiaHoras = tempoTotalDiaUsuario[chaveDiaUser] / (1000 * 60 * 60);
 
-                // Verifica a meta de horas diárias
                 const emailColab = emailsMap[jornada.uid] || "";
                 const cargaDiaria = (emailColab === "math3usmoraes@gmail.com") 
                     ? [8, 0, 8, 8, 8, 8, 8][jornada.dataReferencia.getDay()] 
                     : [7, 6, 0, 6, 6, 9.5, 9.5][jornada.dataReferencia.getDay()];
 
                 if (totalDiaHoras > cargaDiaria && cargaDiaria > 0) {
-                    badgeExtra = `<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 2px 8px; border-radius: 6px; font-size: 0.75em; margin-left: 8px; font-weight: 600; text-transform: uppercase;">+ ${formatarTempo(totalDiaHoras - cargaDiaria)} Extra</span>`;
+                    badgeExtra = `<span class="badge badge-positivo">+ ${formatarTempo(totalDiaHoras - cargaDiaria)} Extra</span>`;
                 } else if (totalDiaHoras < cargaDiaria && cargaDiaria > 0) {
-                    badgeExtra = `<span style="background: rgba(239,68,68,0.15); color: #ef4444; padding: 2px 8px; border-radius: 6px; font-size: 0.75em; margin-left: 8px; font-weight: 600; text-transform: uppercase;">- ${formatarTempo(cargaDiaria - totalDiaHoras)} Pendente</span>`;
+                    badgeExtra = `<span class="badge badge-negativo">- ${formatarTempo(cargaDiaria - totalDiaHoras)} Pendente</span>`;
                 } else if (cargaDiaria > 0) {
-                    badgeExtra = `<span style="background: rgba(59,130,246,0.15); color: #3b82f6; padding: 2px 8px; border-radius: 6px; font-size: 0.75em; margin-left: 8px; font-weight: 600; text-transform: uppercase;">Carga Exata</span>`;
+                    badgeExtra = `<span class="badge badge-neutro">Carga Exata</span>`;
                 } else if (cargaDiaria === 0 && totalDiaHoras > 0) {
-                    badgeExtra = `<span style="background: rgba(16,185,129,0.15); color: #10b981; padding: 2px 8px; border-radius: 6px; font-size: 0.75em; margin-left: 8px; font-weight: 600; text-transform: uppercase;">+ ${formatarTempo(totalDiaHoras)} Extra (Folga)</span>`;
+                    badgeExtra = `<span class="badge badge-positivo">+ ${formatarTempo(totalDiaHoras)} Extra (Folga)</span>`;
                 }
             } else if (jornada.entrada && !jornada.saida) {
-                // Turno Aberto (Trabalhando agora) - Atualiza ao recarregar a tela
                 const parcialHoras = (new Date() - new Date(jornada.entrada.data)) / (1000 * 60 * 60);
                 turnoDuracao = `<span style="color:#fbbf24; font-size: 0.9em; margin-left: 6px; font-style: italic;">(${formatarTempo(parcialHoras)} até o momento)</span>`;
             }
@@ -294,7 +384,7 @@ async function carregarPainelAdmin() {
                 <span style="color:#94a3b8; margin: 0 6px;">•</span>
                 <span style="color:#e2e8f0;">${horaEntrada} às ${horaSaida}</span>
                 ${turnoDuracao}
-                ${badgeExtra}
+                <span style="margin-left: 8px;">${badgeExtra}</span>
             `;
             
             const btnGroup = document.createElement("div");
