@@ -41,12 +41,12 @@ document.addEventListener("DOMContentLoaded", () => {
             let dadosBanco = userDoc.exists() ? userDoc.data() : {};
             const ehAdminNoBanco = dadosBanco.cargo === "admin" || dadosBanco.role === "admin";
             
-            // SEU EMAIL DE ADMIN MASTER (Se o email logado for este, ele SEMPRE libera o painel)
+            // SEU EMAIL DE ADMIN MASTER
             const ehEmailAdminMaster = user.email === "thcompany011@gmail.com" || user.email === "admin@teste.com"; 
 
             if (ehAdminNoBanco || ehEmailAdminMaster) {
                 if (secaoCadastro) secaoCadastro.style.display = "block";
-                if (painelAvancado) painelAvancado.style.display = "block"; // CORRIGIDO para block para renderizar o Grid corretamente
+                if (painelAvancado) painelAvancado.style.display = "block";
                 
                 await mapearUsuarios();
                 popularSelectColaboradores();
@@ -170,7 +170,7 @@ async function carregarHistorico(uid) {
 }
 
 // ==========================================
-// AUDITORIA E GERENCIAMENTO ADMIN
+// AUDITORIA E GERENCIAMENTO ADMIN (AGRUPADO)
 // ==========================================
 async function carregarPainelAdmin() {
     const listaGeral = document.getElementById("lista-geral-pontos");
@@ -178,55 +178,129 @@ async function carregarPainelAdmin() {
     try {
         const querySnapshot = await getDocs(collection(db, "batidas"));
         listaGeral.innerHTML = "";
-        const todosPontos = [];
         
+        const batidasPorUsuario = {};
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            todosPontos.push({ id: doc.id, nome: usuariosMap[data.uid] || "Desconhecido", tipo: data.tipo, data: data.data });
+            const uid = data.uid;
+            if (!batidasPorUsuario[uid]) batidasPorUsuario[uid] = [];
+            batidasPorUsuario[uid].push({ id: doc.id, ...data });
         });
-        
-        todosPontos.sort((a, b) => new Date(b.data) - new Date(a.data)); 
-        
-        todosPontos.forEach((ponto) => {
+
+        const jornadasParaExibir = [];
+
+        for (const uid in batidasPorUsuario) {
+            const batidas = batidasPorUsuario[uid];
+            batidas.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+            const nomeColaborador = usuariosMap[uid] || "Desconhecido";
+            let entradaPendente = null;
+
+            batidas.forEach((batida) => {
+                if (batida.tipo === "Entrada") {
+                    if (entradaPendente) {
+                        jornadasParaExibir.push({
+                            nome: nomeColaborador,
+                            dataReferencia: new Date(entradaPendente.data),
+                            entrada: entradaPendente,
+                            saida: null
+                        });
+                    }
+                    entradaPendente = batida;
+                } else if (batida.tipo === "Saída") {
+                    if (entradaPendente) {
+                        jornadasParaExibir.push({
+                            nome: nomeColaborador,
+                            dataReferencia: new Date(entradaPendente.data),
+                            entrada: entradaPendente,
+                            saida: batida
+                        });
+                        entradaPendente = null;
+                    } else {
+                        jornadasParaExibir.push({
+                            nome: nomeColaborador,
+                            dataReferencia: new Date(batida.data),
+                            entrada: null,
+                            saida: batida
+                        });
+                    }
+                }
+            });
+
+            if (entradaPendente) {
+                jornadasParaExibir.push({
+                    nome: nomeColaborador,
+                    dataReferencia: new Date(entradaPendente.data),
+                    entrada: entradaPendente,
+                    saida: null
+                });
+            }
+        }
+
+        jornadasParaExibir.sort((a, b) => b.dataReferencia - a.dataReferencia);
+
+        const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+        jornadasParaExibir.forEach((jornada) => {
             const li = document.createElement("li");
-            li.className = ponto.tipo === "Entrada" ? "is-entrada" : "is-saida";
             
+            if (jornada.entrada && jornada.saida) {
+                li.style.borderLeft = "4px solid #10b981"; 
+            } else {
+                li.style.borderLeft = "4px solid #f59e0b"; 
+            }
+            
+            const diaTexto = diasSemana[jornada.dataReferencia.getDay()];
+            const dataFormatada = jornada.dataReferencia.toLocaleDateString("pt-BR");
+
+            const horaEntrada = jornada.entrada ? new Date(jornada.entrada.data).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : "--:--";
+            const horaSaida = jornada.saida ? new Date(jornada.saida.data).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : "Trabalhando...";
+
             const infoTexto = document.createElement("div");
-            infoTexto.innerHTML = `<strong style="color:#fff;">${ponto.nome}</strong> 
-                                   <span style="color:#94a3b8; margin: 0 8px;">•</span> 
-                                   <span style="color:${ponto.tipo === 'Entrada' ? '#10b981' : '#ef4444'}; font-weight:600;">${ponto.tipo}</span> 
-                                   <span style="color:#94a3b8; margin: 0 8px;">•</span> 
-                                   ${new Date(ponto.data).toLocaleString("pt-BR")}`;
+            infoTexto.innerHTML = `
+                <strong style="color:#fff;">${jornada.nome}</strong>
+                <span style="color:#94a3b8; margin: 0 6px;">•</span>
+                <span style="color:#3b82f6; font-weight:600;">${diaTexto} (${dataFormatada})</span>
+                <span style="color:#94a3b8; margin: 0 6px;">•</span>
+                <span style="color:#e2e8f0;">${horaEntrada} às ${horaSaida}</span>
+            `;
             
             const btnGroup = document.createElement("div");
             btnGroup.className = "acoes-batida";
 
-            const btnEdit = document.createElement("button");
-            btnEdit.innerHTML = '<i class="fa-solid fa-pen"></i>';
-            btnEdit.className = "btn-acao";
-            btnEdit.title = "Editar Batida";
-            btnEdit.onclick = () => abrirEdicao(ponto.id, ponto.tipo, ponto.data);
+            const registroParaEditar = jornada.entrada || jornada.saida;
+            if (registroParaEditar) {
+                const btnEdit = document.createElement("button");
+                btnEdit.innerHTML = '<i class="fa-solid fa-pen"></i>';
+                btnEdit.className = "btn-acao";
+                btnEdit.title = "Editar este turno";
+                btnEdit.onclick = () => abrirEdicao(registroParaEditar.id, registroParaEditar.tipo, registroParaEditar.data);
+                btnGroup.appendChild(btnEdit);
+            }
 
             const btnDel = document.createElement("button");
             btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
             btnDel.className = "btn-acao";
             btnDel.style.color = "#ef4444";
-            btnDel.title = "Excluir Batida";
+            btnDel.title = "Excluir registros deste turno";
             btnDel.onclick = async () => {
-                if(confirm(`Tem certeza que deseja apagar a batida de ${ponto.nome}?`)) {
-                    await deleteDoc(doc(db, "batidas", ponto.id));
+                if (confirm(`Tem certeza que deseja apagar o turno de ${jornada.nome} no dia ${dataFormatada}?`)) {
+                    if (jornada.entrada) await deleteDoc(doc(db, "batidas", jornada.entrada.id));
+                    if (jornada.saida) await deleteDoc(doc(db, "batidas", jornada.saida.id));
                     carregarPainelAdmin();
                     carregarHistorico(usuarioLogadoUid);
                 }
             };
-
-            btnGroup.appendChild(btnEdit);
             btnGroup.appendChild(btnDel);
+
             li.appendChild(infoTexto);
             li.appendChild(btnGroup);
             listaGeral.appendChild(li);
         });
-    } catch (error) { console.error(error); }
+
+    } catch (error) { 
+        console.error("Erro ao carregar o painel agrupado:", error); 
+    }
 }
 
 window.abrirEdicao = function(id, tipo, dataIso) {
@@ -261,11 +335,10 @@ async function gerarRelatorio() {
     let inicio = new Date(inputInicio + "T00:00:00");
     let fim = new Date(inputFim + "T23:59:59");
     
-    // Regra da Tolerância de Madrugada: Busca batidas até 14 horas após o fim do domingo
     const limiteTolerancia = new Date(fim.getTime() + (14 * 60 * 60 * 1000));
     
     let horasEsperadasNoPeriodo = 0;
-    const jornadaSemanal = [7, 6, 0, 6, 6, 9.5, 9.5]; // Escala customizada TH Company
+    const jornadaSemanal = [7, 6, 0, 6, 6, 9.5, 9.5]; 
     
     let dataAtualLoop = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
     const dataFimLoop = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
