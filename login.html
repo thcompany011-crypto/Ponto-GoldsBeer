@@ -1,19 +1,56 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/style.css">
-    <title>PontoPro | Login</title>
+    <title>Autenticação - Ponto</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface: #1e293b;
+            --primary: #0ea5e9;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-container { background-color: var(--surface); width: 100%; max-width: 400px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; }
+        
+        /* Relógio Redondo Estilo Ahgora */
+        .relogio-circulo {
+            width: 160px; height: 160px; border: 3px solid #334155; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3.2rem; font-weight: bold; color: var(--text-main);
+            margin: 0 auto 30px; font-variant-numeric: tabular-nums;
+        }
+
+        .form-control { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; border-radius: 10px; font-size: 1.1rem; color: var(--text-main); background-color: #0f172a; box-sizing: border-box; }
+        .form-control:focus { outline: none; border-color: var(--primary); }
+        .btn-autenticar { width: 100%; padding: 18px; background-color: var(--primary); color: #fff; border: none; border-radius: 10px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-autenticar:hover { background-color: #0284c7; }
+        .msg-erro { color: #ef4444; font-size: 0.9rem; margin-top: 15px; display: none; }
+    </style>
 </head>
 <body>
-    <div class="card">
-        <h1>PontoPro</h1>
-        <input type="email" id="email" placeholder="E-mail">
-        <input type="password" id="password" placeholder="Senha">
-        <button id="loginBtn">Entrar</button>
+    <div class="login-container">
+        <div class="relogio-circulo" id="relogio-login">00:00</div>
+        
+        <h2 style="color: white; margin-top: 0;">Acesso ao Sistema</h2>
+        <p style="color: var(--text-muted); margin-bottom: 25px;">Identifique-se para bater o ponto</p>
+
+        <form id="formLogin">
+            <input type="email" id="email" class="form-control" placeholder="E-mail" required>
+            <input type="password" id="senha" class="form-control" placeholder="Senha" required>
+            <button type="submit" id="btnAcesso" class="btn-autenticar">ENTRAR</button>
+            <div id="msgErro" class="msg-erro">E-mail ou senha incorretos.</div>
+        </form>
     </div>
-    <script type="module" src="js/auth.js"></script>
+
+    <script type="module" src="js/login.js"></script>
+    <script>
+        setInterval(() => {
+            document.getElementById('relogio-login').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }, 1000);
+    </script>
 </body>
 </html>
-
