@@ -3,174 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Ponto</title>
+    <title>PontoPro - Multi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Estilo Base Premium (Kiosk/Ahgora) */
         :root {
-            --bg-color: #0f172a;
-            --surface-color: #1e293b;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-color: #3b82f6;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --primary: #0284c7; /* Azul corporativo */
+            --success: #10b981; /* Verde Entrada */
+            --danger: #ef4444;  /* Vermelho Saída */
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
         }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        .card {
-            background: var(--surface-color);
-            padding: 25px;
-            border-radius: 12px;
+
+        /* Topbar com Relógio */
+        .topbar {
+            width: 100%;
+            background-color: var(--bg-card);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
             margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        h2, h3 { margin-top: 0; color: #fff; }
-        .btn-moderno {
-            flex: 1; padding: 20px; border: none; border-radius: 8px; 
-            font-size: 1.1rem; font-weight: 600; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; color: #fff;
+
+        .relogio-digital {
+            font-size: 4.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -2px;
+            margin: 0;
         }
-        .btn-moderno:hover { opacity: 0.9; }
-        .btn-entrada { background: var(--success-color); }
-        .btn-saida { background: var(--danger-color); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); }
-        .form-control {
-            width: 100%; padding: 10px; border-radius: 6px;
-            border: 1px solid #334155; background: #0f172a; color: #fff;
+
+        .data-atual {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            text-transform: capitalize;
+            margin-top: 5px;
+        }
+
+        /* Container Central */
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 0 20px;
             box-sizing: border-box;
         }
-        .btn-primary {
-            background: var(--accent-color); color: #fff; border: none; padding: 10px 20px;
-            border-radius: 6px; cursor: pointer; font-weight: 600;
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
         }
-        .btn-primary:hover { background: #2563eb; }
-        .acoes-batida { display: flex; gap: 10px; }
-        .btn-acao { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; }
-        .btn-acao:hover { color: #fff; }
-        #lista-geral-pontos li {
-            background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 10px;
-            display: flex; justify-content: space-between; align-items: center;
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-main);
         }
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #334155; }
-        th { background: #0f172a; color: var(--text-muted); }
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-        .badge-positivo { background: rgba(16,185,129,0.15); color: #10b981; }
-        .badge-negativo { background: rgba(239,68,68,0.15); color: #ef4444; }
-        .badge-neutro { background: rgba(59,130,246,0.15); color: #3b82f6; }
+
+        .card-header i { color: var(--primary); }
+
+        /* Botões de Ponto (Massivos) */
+        .acoes-ponto {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .btn-ponto {
+            flex: 1;
+            padding: 25px 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        .btn-ponto i { font-size: 2rem; }
+        .btn-ponto:active { transform: scale(0.97); }
+        .btn-ponto:hover { filter: brightness(1.1); }
+        .btn-entrada { background-color: var(--success); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+        .btn-saida { background-color: var(--danger); box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3); }
+
+        /* Listas e Histórico - Sobrescrevendo o JS inline */
+        ul { list-style: none; padding: 0; margin: 0; }
         
+        ul li {
+            background: #ffffff !important;
+            border: 1px solid var(--border) !important;
+            padding: 16px 20px !important;
+            border-radius: 12px !important;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            color: var(--text-main) !important;
+        }
+
+        ul li div { color: var(--text-main) !important; }
+        ul li strong { color: var(--text-main) !important; }
+        ul li i { color: var(--text-muted) !important; }
+        ul li span[style*="color:#cbd5e1"] { color: var(--text-muted) !important; }
+
+        /* Estilos do Admin */
+        .painel-admin {
+            display: none; /* Controlado pelo JS */
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .form-control {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+        }
+
+        .btn-admin {
+            background-color: var(--primary);
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
         /* Modal Editar */
         .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.7);
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.7); z-index: 1000; backdrop-filter: blur(4px);
         }
         .modal-content {
-            background-color: var(--surface-color); margin: 10% auto; padding: 25px;
-            border-radius: 12px; width: 90%; max-width: 400px;
+            background: var(--bg-card); width: 90%; max-width: 400px; margin: 100px auto;
+            padding: 25px; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.25);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card" id="painel-colaborador">
-            <h2 style="font-size: 1.4rem;">
-                <i class="fa-solid fa-clock" style="color: var(--accent-color);"></i> Meu Ponto
-            </h2>
-            
-            <div style="display: flex; gap: 15px; margin-bottom: 30px;">
-                <button id="btnEntrada" class="btn-moderno btn-entrada">
-                    <i class="fa-solid fa-right-to-bracket"></i> Bater Entrada
-                </button>
-                <button id="btnSaida" class="btn-moderno btn-saida">
-                    <i class="fa-solid fa-right-from-bracket"></i> Bater Saída
-                </button>
-            </div>
 
-            <h3 style="font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 10px;">
-                <i class="fa-solid fa-list-check"></i> Meu Histórico Diário
-            </h3>
-            <ul id="lista-pontos" style="padding: 0; margin: 0; list-style: none; display: flex; flex-direction: column; gap: 10px;">
-                </ul>
-        </div>
-
-        <div class="card" id="secao-cadastro-admin" style="display: none;">
-            <h3><i class="fa-solid fa-keyboard" style="color: var(--accent-color);"></i> Lançamento Manual (Admin)</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-                <div class="form-group">
-                    <label>Colaborador:</label>
-                    <select id="selectColaboradorManual" class="form-control"></select>
-                </div>
-                <div class="form-group">
-                    <label>Tipo:</label>
-                    <select id="selectTipoManual" class="form-control">
-                        <option value="Entrada">Entrada</option>
-                        <option value="Saída">Saída</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Data e Hora:</label>
-                    <input type="datetime-local" id="inputDataManual" class="form-control">
-                </div>
-            </div>
-            <button id="btnSalvarManual" class="btn-primary" style="width: 100%;"><i class="fa-solid fa-save"></i> Registrar Ponto Manual</button>
-        </div>
-
-        <div class="card" id="painel-avancado-admin" style="display: none;">
-            <h3><i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent-color);"></i> Auditoria de Turnos (Admin)</h3>
-            <ul id="lista-geral-pontos" style="padding: 0; margin: 0; list-style: none; margin-bottom: 30px;"></ul>
-            
-            <hr style="border: 1px solid #334155; margin: 30px 0;">
-            
-            <h3><i class="fa-solid fa-file-invoice-dollar" style="color: var(--accent-color);"></i> Relatório Financeiro / Fechamento</h3>
-            <div style="display: flex; gap: 15px; align-items: end; margin-bottom: 20px;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Data Início:</label>
-                    <input type="date" id="dataInicioRelatorio" class="form-control">
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Data Fim:</label>
-                    <input type="date" id="dataFimRelatorio" class="form-control">
-                </div>
-                <button id="btnGerarRelatorio" class="btn-primary" style="height: 42px;"><i class="fa-solid fa-file-export"></i> Gerar Fechamento</button>
-            </div>
-            <div id="container-relatorio"></div>
-        </div>
+    <!-- Relógio Gigante Estilo Totem -->
+    <div class="topbar">
+        <div class="relogio-digital" id="relogio">00:00</div>
+        <div class="data-atual" id="dataAtual">Carregando data...</div>
     </div>
 
-    <div id="modal-editar" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 15px;">Editar Ponto</h3>
-            <input type="hidden" id="editBatidaId">
-            <div class="form-group">
-                <label>Tipo:</label>
-                <select id="editTipo" class="form-control">
+    <div class="container">
+        
+        <!-- Área de Bater Ponto -->
+        <div class="card">
+            <div class="card-header"><i class="fa-solid fa-fingerprint"></i> Meu Ponto</div>
+            <div class="acoes-ponto">
+                <button class="btn-ponto btn-entrada" id="btnEntrada">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Bater Entrada
+                </button>
+                <button class="btn-ponto btn-saida" id="btnSaida">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Bater Saída
+                </button>
+            </div>
+        </div>
+
+        <!-- Histórico do Usuário -->
+        <div class="card">
+            <div class="card-header"><i class="fa-solid fa-list-check"></i> Meu Histórico Diário</div>
+            <ul id="lista-pontos"></ul>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- ÁREA ADMINISTRATIVA (Oculta por padrão)    -->
+        <!-- ========================================== -->
+        
+        <div class="card painel-admin" id="secao-cadastro-admin">
+            <div class="card-header"><i class="fa-solid fa-keyboard"></i> Lançamento Manual (Admin)</div>
+            <div class="form-row">
+                <select id="selectColaboradorManual" class="form-control"></select>
+                <select id="selectTipoManual" class="form-control">
                     <option value="Entrada">Entrada</option>
                     <option value="Saída">Saída</option>
                 </select>
+                <input type="datetime-local" id="inputDataManual" class="form-control">
             </div>
-            <div class="form-group">
-                <label>Nova Data e Hora:</label>
-                <input type="datetime-local" id="editData" class="form-control">
+            <button class="btn-admin" id="btnSalvarManual"><i class="fa-solid fa-save"></i> Registrar Ponto Manual</button>
+        </div>
+
+        <div class="card painel-admin" id="painel-avancado-admin">
+            <div class="card-header"><i class="fa-solid fa-user-shield"></i> Auditoria de Turnos (Admin)</div>
+            <ul id="lista-geral-pontos"></ul>
+            
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 30px 0;">
+            
+            <div class="card-header"><i class="fa-solid fa-file-invoice-dollar"></i> Fechamento Financeiro</div>
+            <div class="form-row">
+                <input type="date" id="dataInicioRelatorio" class="form-control">
+                <input type="date" id="dataFimRelatorio" class="form-control">
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button id="btnSalvarEdicao" class="btn-primary" style="flex: 1; background: var(--success-color);">Salvar</button>
-                <button id="btnCancelarEdicao" class="btn-primary" style="flex: 1; background: #64748b;">Cancelar</button>
+            <button class="btn-admin" id="btnGerarRelatorio"><i class="fa-solid fa-calculator"></i> Gerar Fechamento</button>
+            <div id="container-relatorio" style="margin-top: 20px;"></div>
+        </div>
+
+    </div>
+
+    <!-- Modal de Edição -->
+    <div id="modal-editar" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0; color: #0f172a;"><i class="fa-solid fa-pen"></i> Editar Batida</h3>
+            <input type="hidden" id="editBatidaId">
+            <select id="editTipo" class="form-control" style="width:100%; margin-bottom:15px; box-sizing:border-box;">
+                <option value="Entrada">Entrada</option>
+                <option value="Saída">Saída</option>
+            </select>
+            <input type="datetime-local" id="editData" class="form-control" style="width:100%; margin-bottom:15px; box-sizing:border-box;">
+            <div style="display:flex; gap:10px;">
+                <button id="btnSalvarEdicao" class="btn-admin">Salvar</button>
+                <button id="btnCancelarEdicao" class="btn-admin" style="background:#ef4444;">Cancelar</button>
             </div>
         </div>
     </div>
 
+    <!-- Script do Relógio (Visual) -->
+    <script>
+        function atualizarRelogio() {
+            const agora = new Date();
+            document.getElementById('relogio').textContent = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            const opcoesData = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('dataAtual').textContent = agora.toLocaleDateString('pt-BR', opcoesData);
+        }
+        setInterval(atualizarRelogio, 1000);
+        atualizarRelogio();
+    </script>
+
+    <!-- Seu Script Lógico do Firebase -->
     <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>
