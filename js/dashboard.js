@@ -385,6 +385,8 @@ async function gerarRelatorio() {
         linhas: []
     };
 
+    const diasSemanaNomes = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
     for (const uid in horasPorUsuario) {
         const emailColab = emailsMap[uid] || "";
         const jornadaAplicada = emailColab === "math3usmoraes@gmail.com" ? [8, 0, 8, 8, 8, 8, 8] : [7, 6, 0, 6, 6, 9.5, 9.5];
@@ -401,9 +403,58 @@ async function gerarRelatorio() {
         let totalMS = 0;
         let entradaAtiva = null;
 
+        // Variáveis para mapeamento detalhado (PDF)
+        let turnosDetalhados = [];
+        let tempoTotalDiaUsuarioRelatorio = {};
+
         pontos.forEach((p) => {
-            if (p.tipo === "Entrada") { if (p.data <= fim) entradaAtiva = p.data; } 
-            else if (p.tipo === "Saída" && entradaAtiva) { totalMS += (p.data - entradaAtiva); entradaAtiva = null; }
+            if (p.tipo === "Entrada") { 
+                if (p.data <= fim) {
+                    if (entradaAtiva) turnosDetalhados.push({ entrada: { data: entradaAtiva }, saida: null });
+                    entradaAtiva = p.data; 
+                } 
+            } 
+            else if (p.tipo === "Saída" && entradaAtiva) { 
+                const duracaoMs = (p.data - entradaAtiva);
+                totalMS += duracaoMs; 
+                
+                turnosDetalhados.push({ entrada: { data: entradaAtiva }, saida: { data: p.data } });
+                
+                const chaveDia = new Date(entradaAtiva).toLocaleDateString("pt-BR");
+                if (!tempoTotalDiaUsuarioRelatorio[chaveDia]) tempoTotalDiaUsuarioRelatorio[chaveDia] = 0;
+                tempoTotalDiaUsuarioRelatorio[chaveDia] += duracaoMs;
+
+                entradaAtiva = null; 
+            }
+        });
+        
+        if (entradaAtiva) turnosDetalhados.push({ entrada: { data: entradaAtiva }, saida: null });
+
+        // Gera as linhas textuais do espelho de ponto deste usuário para o PDF
+        let linhasTurnosPDF = turnosDetalhados.map(t => {
+            const dataRef = t.entrada ? new Date(t.entrada.data) : new Date(t.saida.data);
+            const diaTexto = diasSemanaNomes[dataRef.getDay()];
+            const dataFormatada = dataRef.toLocaleDateString("pt-BR");
+            const horaIn = t.entrada ? new Date(t.entrada.data).toLocaleTimeString("pt-BR", {hour:'2-digit', minute:'2-digit'}) : "--:--";
+            const horaOut = t.saida ? new Date(t.saida.data).toLocaleTimeString("pt-BR", {hour:'2-digit', minute:'2-digit'}) : "Trabalhando...";
+
+            let duracaoStr = "-";
+            let saldoStr = "-";
+
+            if (t.entrada && t.saida) {
+                const duracaoHoras = (t.saida.data - t.entrada.data) / (1000 * 60 * 60);
+                duracaoStr = formatarTempo(duracaoHoras);
+
+                const totalDiaHoras = tempoTotalDiaUsuarioRelatorio[dataFormatada] / (1000 * 60 * 60);
+                const cargaDia = jornadaAplicada[dataRef.getDay()];
+
+                if (totalDiaHoras > cargaDia && cargaDia > 0) saldoStr = `+ ${formatarTempo(totalDiaHoras - cargaDia)} Extra`;
+                else if (totalDiaHoras < cargaDia && cargaDia > 0) saldoStr = `- ${formatarTempo(cargaDia - totalDiaHoras)} Pendente`;
+                else if (cargaDia > 0) saldoStr = `Carga Exata`;
+                else if (cargaDia === 0 && totalDiaHoras > 0) saldoStr = `+ ${formatarTempo(totalDiaHoras)} (Folga)`;
+            }
+
+            return [dataFormatada, diaTexto, horaIn, horaOut, duracaoStr, saldoStr];
         });
 
         const totalHorasDec = totalMS / (1000 * 60 * 60);
@@ -421,13 +472,14 @@ async function gerarRelatorio() {
             htmlSaldo = `<span class="badge badge-neutro">Carga Exata</span>`;
         }
 
-        // SALVA OS DADOS DESTE FUNCIONÁRIO NO ARRAY DO PDF
+        // Armazena dados completos do colaborador para o PDF
         dadosRelatorioAtual.linhas.push({
             nome: usuariosMap[uid],
             trabalhadas: totalHorasDec,
             prevista: horasEsperadas,
             excedente: excedente,
-            valorExtra: valorExtra
+            valorExtra: valorExtra,
+            turnos: linhasTurnosPDF // Recebeu a matriz detalhada
         });
 
         html += `<tr><td style="color:#fff;">${usuariosMap[uid]}</td><td><strong style="color:var(--accent-color);">${totalHorasDec.toFixed(2)}h</strong></td><td style="color:var(--text-muted);">${horasEsperadas.toFixed(2)}h</td><td>${htmlSaldo}</td></tr>`;
@@ -435,20 +487,18 @@ async function gerarRelatorio() {
     html += `</table></div>`;
     container.innerHTML = html;
 
-    // Quando o relatório aparece na tela, revela o botão de Baixar PDF
     const btnExportarPDF = document.getElementById("btnExportarPDF");
     if(btnExportarPDF) btnExportarPDF.style.display = "inline-block";
 }
 
-// NOVA FUNÇÃO: GERA E FAZ O DOWNLOAD DO PDF
+// NOVA FUNÇÃO: GERA E FAZ O DOWNLOAD DO PDF COM DETALHES DIÁRIOS
 function exportarParaPDF() {
     if (!dadosRelatorioAtual) return alert("Gere o relatório primeiro.");
     
-    // Inicia a biblioteca jsPDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Cabeçalho do PDF
+    // 1. Cabeçalho Geral
     doc.setFontSize(16);
     doc.text(`PontoPro - Fechamento Financeiro`, 14, 20);
     
@@ -456,11 +506,9 @@ function exportarParaPDF() {
     doc.text(`Período de Apuração: ${dadosRelatorioAtual.inicioStr} a ${dadosRelatorioAtual.fimStr}`, 14, 28);
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 34);
 
-    // Estrutura das Colunas
-    const cabecalho = [["Colaborador", "Horas Trabalhadas", "Carga Prevista", "Horas Extras", "Total A Receber (R$)"]];
-    
-    // Monta as linhas mapeando os dados salvos
-    const corpoTabela = dadosRelatorioAtual.linhas.map(linha => [
+    // 2. Tabela de Resumo Consolidado
+    const cabecalhoResumo = [["Colaborador", "Horas Trabalhadas", "Carga Prevista", "Horas Extras", "Total A Receber (R$)"]];
+    const corpoResumo = dadosRelatorioAtual.linhas.map(linha => [
         linha.nome,
         `${linha.trabalhadas.toFixed(2)} hrs`,
         `${linha.prevista.toFixed(2)} hrs`,
@@ -468,19 +516,49 @@ function exportarParaPDF() {
         linha.valorExtra > 0 ? `R$ ${linha.valorExtra.toFixed(2).replace('.', ',')}` : '-'
     ]);
 
-    // Aplica a tabela estilizada no PDF
     doc.autoTable({
         startY: 42,
-        head: cabecalho,
-        body: corpoTabela,
-        theme: 'striped', // Cria linhas cinza e brancas para leitura fácil
-        headStyles: { fillColor: [59, 130, 246] }, // Azul
+        head: cabecalhoResumo,
+        body: corpoResumo,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
         styles: { fontSize: 10, cellPadding: 4 },
     });
 
-    // Puxa o nome automático pro arquivo PDF
+    // 3. Auditoria: Tabelas Detalhadas por Colaborador
+    dadosRelatorioAtual.linhas.forEach(usuario => {
+        // Se o usuário possui registros de ponto no período
+        if (usuario.turnos && usuario.turnos.length > 0) {
+            
+            // Define o início da nova tabela abaixo da anterior
+            let yPos = doc.lastAutoTable.finalY + 15;
+            
+            // Verifica se está muito perto do final da página para quebrar para a próxima
+            if (yPos > doc.internal.pageSize.getHeight() - 20) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            // Título do funcionário
+            doc.setFontSize(12);
+            doc.setTextColor(40);
+            doc.text(`Espelho de Ponto Detalhado: ${usuario.nome}`, 14, yPos);
+
+            // Cria a tabela de turnos
+            doc.autoTable({
+                startY: yPos + 5,
+                head: [['Data', 'Dia da Semana', 'Entrada', 'Saída', 'Duração do Turno', 'Saldo do Dia']],
+                body: usuario.turnos,
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185] },
+                styles: { fontSize: 9, cellPadding: 3 },
+                alternateRowStyles: { fillColor: [245, 245, 245] }
+            });
+        }
+    });
+
+    // Gera o arquivo
     const nomeArquivo = `Fechamento_${dadosRelatorioAtual.inicioStr.replace(/\//g, '-')}_a_${dadosRelatorioAtual.fimStr.replace(/\//g, '-')}.pdf`;
-    
-    // Dispara o Download do PDF
     doc.save(nomeArquivo);
 }
+
