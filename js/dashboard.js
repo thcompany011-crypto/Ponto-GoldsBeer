@@ -7,6 +7,7 @@ const db = getFirestore(app);
 let usuarioLogadoUid = null;
 let usuariosMap = {}; 
 let emailsMap = {}; 
+let dadosRelatorioAtual = null; // Armazena dados para o PDF
 
 async function registrarPonto(tipo, uid, dataHoraManual = null) {
     try {
@@ -77,6 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnGerarRelatorio = document.getElementById("btnGerarRelatorio");
     if (btnGerarRelatorio) btnGerarRelatorio.addEventListener("click", () => gerarRelatorio());
+
+    // Botão do PDF
+    const btnExportarPDF = document.getElementById("btnExportarPDF");
+    if (btnExportarPDF) btnExportarPDF.addEventListener("click", () => exportarParaPDF());
 
     const btnSalvarEdicao = document.getElementById("btnSalvarEdicao");
     const btnCancelarEdicao = document.getElementById("btnCancelarEdicao");
@@ -347,7 +352,7 @@ window.abrirEdicao = function(id, tipo, dataIso) {
     document.getElementById("editData").value = d.toISOString().slice(0, 16);
 };
 
-// Relatório
+// Relatório Aprimorado
 async function gerarRelatorio() {
     const container = document.getElementById("container-relatorio");
     const inputInicio = document.getElementById("dataInicioRelatorio").value;
@@ -370,7 +375,15 @@ async function gerarRelatorio() {
         }
     });
 
-    let html = `<div class="table-wrapper"><table><tr><th>Colaborador</th><th>Trabalhadas</th><th>Carga Prevista</th><th>Status</th></tr>`;
+    let html = `<div style="margin-bottom: 15px; color: var(--text-muted);">Fechamento de: <strong>${inicio.toLocaleDateString('pt-BR')}</strong> a <strong>${fim.toLocaleDateString('pt-BR')}</strong></div>`;
+    html += `<div class="table-wrapper"><table><tr><th>Colaborador</th><th>Trabalhadas</th><th>Carga Prevista</th><th>Status / Fechamento</th></tr>`;
+
+    // PREPARA OS DADOS PARA O PDF
+    dadosRelatorioAtual = {
+        inicioStr: inicio.toLocaleDateString('pt-BR'),
+        fimStr: fim.toLocaleDateString('pt-BR'),
+        linhas: []
+    };
 
     for (const uid in horasPorUsuario) {
         const emailColab = emailsMap[uid] || "";
@@ -395,18 +408,79 @@ async function gerarRelatorio() {
 
         const totalHorasDec = totalMS / (1000 * 60 * 60);
         let htmlSaldo = "";
+        let excedente = 0;
+        let valorExtra = 0;
         
         if (totalHorasDec > horasEsperadas) {
-            const excedente = totalHorasDec - horasEsperadas;
-            htmlSaldo = `<span class="badge badge-positivo">+ ${excedente.toFixed(2)}h (R$ ${(excedente * 11).toFixed(2).replace('.', ',')})</span>`;
+            excedente = totalHorasDec - horasEsperadas;
+            valorExtra = excedente * 11; // Base de cálculo R$ 11
+            htmlSaldo = `<span class="badge badge-positivo">+ ${excedente.toFixed(2)}h (R$ ${valorExtra.toFixed(2).replace('.', ',')})</span>`;
         } else if (totalHorasDec < horasEsperadas && horasEsperadas > 0) {
             htmlSaldo = `<span class="badge badge-negativo">- ${(horasEsperadas - totalHorasDec).toFixed(2)}h pendentes</span>`;
         } else {
             htmlSaldo = `<span class="badge badge-neutro">Carga Exata</span>`;
         }
 
+        // SALVA OS DADOS DESTE FUNCIONÁRIO NO ARRAY DO PDF
+        dadosRelatorioAtual.linhas.push({
+            nome: usuariosMap[uid],
+            trabalhadas: totalHorasDec,
+            prevista: horasEsperadas,
+            excedente: excedente,
+            valorExtra: valorExtra
+        });
+
         html += `<tr><td style="color:#fff;">${usuariosMap[uid]}</td><td><strong style="color:var(--accent-color);">${totalHorasDec.toFixed(2)}h</strong></td><td style="color:var(--text-muted);">${horasEsperadas.toFixed(2)}h</td><td>${htmlSaldo}</td></tr>`;
     }
     html += `</table></div>`;
     container.innerHTML = html;
+
+    // Quando o relatório aparece na tela, revela o botão de Baixar PDF
+    const btnExportarPDF = document.getElementById("btnExportarPDF");
+    if(btnExportarPDF) btnExportarPDF.style.display = "inline-block";
+}
+
+// NOVA FUNÇÃO: GERA E FAZ O DOWNLOAD DO PDF
+function exportarParaPDF() {
+    if (!dadosRelatorioAtual) return alert("Gere o relatório primeiro.");
+    
+    // Inicia a biblioteca jsPDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Cabeçalho do PDF
+    doc.setFontSize(16);
+    doc.text(`PontoPro - Fechamento Financeiro`, 14, 20);
+    
+    doc.setFontSize(11);
+    doc.text(`Período de Apuração: ${dadosRelatorioAtual.inicioStr} a ${dadosRelatorioAtual.fimStr}`, 14, 28);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 34);
+
+    // Estrutura das Colunas
+    const cabecalho = [["Colaborador", "Horas Trabalhadas", "Carga Prevista", "Horas Extras", "Total A Receber (R$)"]];
+    
+    // Monta as linhas mapeando os dados salvos
+    const corpoTabela = dadosRelatorioAtual.linhas.map(linha => [
+        linha.nome,
+        `${linha.trabalhadas.toFixed(2)} hrs`,
+        `${linha.prevista.toFixed(2)} hrs`,
+        linha.excedente > 0 ? `+ ${linha.excedente.toFixed(2)} hrs` : 'Sem extras',
+        linha.valorExtra > 0 ? `R$ ${linha.valorExtra.toFixed(2).replace('.', ',')}` : '-'
+    ]);
+
+    // Aplica a tabela estilizada no PDF
+    doc.autoTable({
+        startY: 42,
+        head: cabecalho,
+        body: corpoTabela,
+        theme: 'striped', // Cria linhas cinza e brancas para leitura fácil
+        headStyles: { fillColor: [59, 130, 246] }, // Azul
+        styles: { fontSize: 10, cellPadding: 4 },
+    });
+
+    // Puxa o nome automático pro arquivo PDF
+    const nomeArquivo = `Fechamento_${dadosRelatorioAtual.inicioStr.replace(/\//g, '-')}_a_${dadosRelatorioAtual.fimStr.replace(/\//g, '-')}.pdf`;
+    
+    // Dispara o Download do PDF
+    doc.save(nomeArquivo);
 }
