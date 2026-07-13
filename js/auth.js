@@ -11,7 +11,7 @@ const loginBtn = document.getElementById('loginBtn');
 if (loginBtn) {
     loginBtn.addEventListener('click', async () => {
         const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+        const password = document.getElementById('senha').value;
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
