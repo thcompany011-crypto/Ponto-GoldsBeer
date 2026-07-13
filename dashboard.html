@@ -57,7 +57,6 @@
             letter-spacing: 1px;
         }
 
-        /* O Círculo do Relógio igual à foto */
         .clock-circle {
             width: 220px;
             height: 220px;
@@ -179,6 +178,7 @@
 <body>
     <div class="container">
         
+        <!-- CARD DO COLABORADOR: ESTILO AHGORA MULTI (DARK) -->
         <div class="app-multi-card" id="painel-colaborador">
             
             <div class="app-brand">
@@ -186,14 +186,17 @@
                 PONTOPRO SISTEMAS
             </div>
 
+            <!-- Círculo do Relógio -->
             <div class="clock-circle">
                 <div class="clock-time" id="relogio">00:00</div>
             </div>
 
+            <!-- Botão "Espelho de Ponto" -->
             <button class="btn-espelho" onclick="document.getElementById('historico-diario').scrollIntoView({behavior: 'smooth'})">
                 <i class="fa-solid fa-desktop"></i> Espelho de ponto
             </button>
             
+            <!-- Botões Largos de Ação -->
             <div class="acoes-ponto">
                 <button id="btnEntrada" class="btn-ponto btn-entrada">
                     <i class="fa-solid fa-face-smile"></i> REGISTRAR ENTRADA
@@ -204,14 +207,17 @@
             </div>
         </div>
 
+        <!-- HISTÓRICO DIÁRIO -->
         <div class="card" id="historico-diario">
             <h3 style="font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 10px;">
                 <i class="fa-solid fa-list-check" style="color: var(--accent-color);"></i> Meu Histórico Diário
             </h3>
             <ul id="lista-pontos" style="display: flex; flex-direction: column; gap: 10px;">
-                </ul>
+                <!-- JS injeta os pontos aqui -->
+            </ul>
         </div>
 
+        <!-- SEÇÃO ADMIN: LANÇAMENTO MANUAL -->
         <div class="card" id="secao-cadastro-admin" style="display: none;">
             <h3><i class="fa-solid fa-keyboard" style="color: var(--accent-color);"></i> Lançamento Manual (Admin)</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
@@ -234,6 +240,7 @@
             <button id="btnSalvarManual" class="btn-primary" style="width: 100%;"><i class="fa-solid fa-save"></i> Registrar Ponto Manual</button>
         </div>
 
+        <!-- SEÇÃO ADMIN: AUDITORIA E RELATÓRIO -->
         <div class="card" id="painel-avancado-admin" style="display: none;">
             <h3><i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent-color);"></i> Auditoria de Turnos (Admin)</h3>
             <ul id="lista-geral-pontos" style="margin-bottom: 30px;"></ul>
@@ -241,6 +248,8 @@
             <hr style="border: 1px solid #334155; margin: 30px 0;">
             
             <h3><i class="fa-solid fa-file-invoice-dollar" style="color: var(--accent-color);"></i> Relatório Financeiro / Fechamento</h3>
+            
+            <!-- ÁREA DE FILTROS E BOTÕES PDF -->
             <div style="display: flex; gap: 15px; align-items: end; margin-bottom: 20px;">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>Data Início:</label>
@@ -251,11 +260,16 @@
                     <input type="date" id="dataFimRelatorio" class="form-control">
                 </div>
                 <button id="btnGerarRelatorio" class="btn-primary" style="height: 42px;"><i class="fa-solid fa-file-export"></i> Gerar Fechamento</button>
+                
+                <!-- BOTÃO DE PDF -->
+                <button id="btnExportarPDF" class="btn-primary" style="height: 42px; display: none; background-color: var(--success-color);"><i class="fa-solid fa-file-pdf"></i> Baixar PDF</button>
             </div>
+            
             <div id="container-relatorio"></div>
         </div>
     </div>
 
+    <!-- MODAL DE EDIÇÃO -->
     <div id="modal-editar" class="modal">
         <div class="modal-content">
             <h3 style="margin-bottom: 15px;">Editar Ponto</h3>
@@ -278,6 +292,7 @@
         </div>
     </div>
 
+    <!-- SCRIPT DO RELÓGIO DIGITAL -->
     <script>
         function atualizarRelogio() {
             const agora = new Date();
@@ -286,6 +301,10 @@
         setInterval(atualizarRelogio, 1000);
         atualizarRelogio();
     </script>
+
+    <!-- Bibliotecas para Gerar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <script type="module" src="js/dashboard.js"></script>
 </body>
