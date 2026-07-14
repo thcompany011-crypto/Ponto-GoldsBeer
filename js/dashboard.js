@@ -500,7 +500,7 @@ function exportarParaPDF() {
 
     // 1. Cabeçalho Geral
     doc.setFontSize(16);
-    doc.text(`PontoPro - Fechamento Financeiro`, 14, 20);
+    doc.text(`Ponto Golds Beer - Fechamento Semanal`, 14, 20);
     
     doc.setFontSize(11);
     doc.text(`Período de Apuração: ${dadosRelatorioAtual.inicioStr} a ${dadosRelatorioAtual.fimStr}`, 14, 28);
