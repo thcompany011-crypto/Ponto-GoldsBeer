@@ -183,7 +183,7 @@
             
             <div class="app-brand">
                 <i class="fa-solid fa-fingerprint"></i>
-                TH COMPANY SISTEMAS
+                PONTOPRO SISTEMAS
             </div>
 
             <!-- Círculo do Relógio -->
@@ -191,8 +191,8 @@
                 <div class="clock-time" id="relogio">00:00</div>
             </div>
 
-            <!-- Botão "Espelho de Ponto" -->
-            <button class="btn-espelho" onclick="document.getElementById('historico-diario').scrollIntoView({behavior: 'smooth'})">
+            <!-- Botão "Espelho de Ponto" (Agota com ID para o JavaScript controlar) -->
+            <button class="btn-espelho" id="btnToggleHistorico">
                 <i class="fa-solid fa-desktop"></i> Espelho de ponto
             </button>
             
@@ -207,8 +207,8 @@
             </div>
         </div>
 
-        <!-- HISTÓRICO DIÁRIO -->
-        <div class="card" id="historico-diario">
+        <!-- HISTÓRICO DIÁRIO (Agora inicia escondido: display: none) -->
+        <div class="card" id="historico-diario" style="display: none;">
             <h3 style="font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 10px;">
                 <i class="fa-solid fa-list-check" style="color: var(--accent-color);"></i> Meu Histórico Diário
             </h3>
@@ -309,4 +309,3 @@
     <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>
-
