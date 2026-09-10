@@ -1,10 +1,10 @@
 {
-  "name": "PontoPro",
-  "short_name": "PontoPro",
+  "name": "Ponto Golds Beer",
+  "short_name": "PontoGB",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#7B61FF",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2933/2933158.png",
@@ -13,4 +13,3 @@
     }
   ]
 }
-
