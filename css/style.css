@@ -1,6 +1,178 @@
-:root { --primary: #7B61FF; --bg: #121212; --card: #1a1a1a; --text: #ffffff; }
-body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-.card { background: var(--card); padding: 30px; border-radius: 20px; width: 300px; text-align: center; }
-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #262626; color: white; box-sizing: border-box; }
-button { width: 100%; padding: 15px; border-radius: 10px; background: var(--primary); color: white; border: none; cursor: pointer; }
+/* ==========================================================
+   Ponto Golds Beer — folha de estilos única do sistema
+   (antes duplicada dentro de <style> em cada página HTML)
+   ========================================================== */
 
+:root {
+    --bg-color: #0f172a;
+    --surface-color: #1e293b;
+    --text-color: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-color: #3b82f6;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+}
+
+/* ---------- Tela de Login ---------- */
+body.pagina-login {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-container {
+    background-color: var(--surface-color);
+    width: 100%;
+    max-width: 400px;
+    padding: 40px 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    text-align: center;
+}
+
+.relogio-circulo {
+    width: 160px; height: 160px; border: 3px solid #334155; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.2rem; font-weight: bold; color: var(--text-color);
+    margin: 0 auto 30px; font-variant-numeric: tabular-nums;
+}
+
+.btn-autenticar {
+    width: 100%; padding: 18px; background-color: var(--accent-color); color: #fff;
+    border: none; border-radius: 10px; font-size: 1.2rem; font-weight: bold;
+    cursor: pointer; transition: 0.2s;
+}
+.btn-autenticar:hover { background-color: #2563eb; }
+.msg-erro { color: var(--danger-color); font-size: 0.9rem; margin-top: 15px; display: none; }
+
+/* ---------- Dashboard: layout geral ---------- */
+.container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+
+/* ---------- Dashboard: card de bater ponto (estilo "app multi") ---------- */
+.app-multi-card {
+    background-color: var(--surface-color);
+    max-width: 420px;
+    margin: 0 auto 40px auto;
+    border-radius: 24px;
+    padding: 40px 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    text-align: center;
+    border: 1px solid #334155;
+}
+
+.app-brand {
+    font-size: 1.1rem; font-weight: 600; color: var(--text-muted); margin-bottom: 40px;
+    display: flex; align-items: center; justify-content: center; gap: 10px; letter-spacing: 1px;
+}
+
+.clock-circle {
+    width: 220px; height: 220px; border: 3px solid #334155; border-radius: 50%;
+    margin: 0 auto 30px auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+
+.clock-time { font-size: 4.5rem; font-weight: 700; color: var(--text-color); letter-spacing: -2px; line-height: 1; }
+
+.btn-espelho {
+    background: transparent; border: 1px solid var(--accent-color); color: var(--accent-color);
+    padding: 10px 25px; border-radius: 8px; font-size: 1rem; font-weight: 600;
+    cursor: pointer; margin-bottom: 40px; transition: 0.3s;
+}
+.btn-espelho:hover { background: rgba(59,130,246,0.1); }
+
+.acoes-ponto { display: flex; flex-direction: column; gap: 15px; }
+
+.btn-ponto {
+    width: 100%; padding: 20px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold;
+    color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: transform 0.1s;
+}
+.btn-ponto:active { transform: scale(0.98); }
+.btn-entrada { background-color: var(--success-color); }
+.btn-saida { background-color: var(--danger-color); }
+
+/* ---------- Dashboard: cards gerais ---------- */
+.card {
+    background: var(--surface-color); padding: 25px; border-radius: 12px;
+    margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+h2, h3 { margin-top: 0; color: #fff; }
+
+.section-header-flex {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 15px;
+}
+
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); }
+.form-control {
+    width: 100%; padding: 10px; border-radius: 6px;
+    border: 1px solid #334155; background: #0f172a; color: #fff;
+}
+.form-control:focus { outline: none; border-color: var(--accent-color); }
+
+.btn-primary {
+    background: var(--accent-color); color: #fff; border: none; padding: 10px 20px;
+    border-radius: 6px; cursor: pointer; font-weight: 600;
+}
+.btn-primary:hover { background: #2563eb; }
+
+.checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; color: var(--text-muted); }
+.checkbox-row input { width: auto; }
+
+.acoes-batida { display: flex; gap: 10px; }
+.btn-acao { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; }
+.btn-acao:hover { color: #fff; }
+
+ul { list-style: none; padding: 0; margin: 0; }
+#lista-geral-pontos li,
+#lista-colaboradores li,
+#lista-feriados li {
+    background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { text-align: left; padding: 12px; border-bottom: 1px solid #334155; }
+th { background: #0f172a; color: var(--text-muted); }
+
+.badge { padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+.badge-positivo { background: rgba(16,185,129,0.15); color: var(--success-color); }
+.badge-negativo { background: rgba(239,68,68,0.15); color: var(--danger-color); }
+.badge-neutro { background: rgba(59,130,246,0.15); color: var(--accent-color); }
+
+/* ---------- Modais ---------- */
+.modal {
+    display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.7); overflow-y: auto;
+}
+.modal-content {
+    background-color: var(--surface-color); margin: 5% auto; padding: 25px;
+    border-radius: 12px; width: 90%; max-width: 480px;
+}
+.modal-content-lg { max-width: 560px; }
+
+.jornada-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 15px; }
+.jornada-grid label { font-size: 0.75rem; text-align: center; }
+.jornada-grid input { text-align: center; padding: 8px 4px; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 640px) {
+    .jornada-grid { grid-template-columns: repeat(4, 1fr); }
+    #painel-avancado-admin div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+}
