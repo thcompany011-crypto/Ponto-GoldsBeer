@@ -3,187 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Ponto</title>
+    <title>Ponto Golds Beer | Painel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* TEMA DARK ORIGINAL RESTAURADO */
-        :root {
-            --bg-color: #0f172a;
-            --surface-color: #1e293b;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-color: #3b82f6;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        /* ========================================== */
-        /* LAYOUT AHGORA MULTI (ADAPTADO PARA DARK)   */
-        /* ========================================== */
-        .app-multi-card {
-            background-color: var(--surface-color);
-            max-width: 420px;
-            margin: 0 auto 40px auto;
-            border-radius: 24px;
-            padding: 40px 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center;
-            border: 1px solid #334155;
-        }
-
-        .app-brand {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            letter-spacing: 1px;
-        }
-
-        .clock-circle {
-            width: 220px;
-            height: 220px;
-            border: 3px solid #334155;
-            border-radius: 50%;
-            margin: 0 auto 30px auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .clock-time {
-            font-size: 4.5rem;
-            font-weight: 700;
-            color: var(--text-color);
-            letter-spacing: -2px;
-            line-height: 1;
-        }
-
-        .btn-espelho {
-            background: transparent;
-            border: 1px solid var(--accent-color);
-            color: var(--accent-color);
-            padding: 10px 25px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 40px;
-            transition: 0.3s;
-        }
-
-        .btn-espelho:hover { background: rgba(59,130,246,0.1); }
-
-        .acoes-ponto {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .btn-ponto {
-            width: 100%;
-            padding: 20px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #fff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: transform 0.1s;
-        }
-
-        .btn-ponto:active { transform: scale(0.98); }
-        .btn-entrada { background-color: var(--success-color); }
-        .btn-saida { background-color: var(--danger-color); }
-
-        /* ========================================== */
-        /* RESTANTE DO SISTEMA (HISTÓRICO E ADMIN)    */
-        /* ========================================== */
-        .card {
-            background: var(--surface-color);
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-
-        h2, h3 { margin-top: 0; color: #fff; }
-        
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); }
-        .form-control {
-            width: 100%; padding: 10px; border-radius: 6px;
-            border: 1px solid #334155; background: #0f172a; color: #fff;
-            box-sizing: border-box;
-        }
-
-        .btn-primary {
-            background: var(--accent-color); color: #fff; border: none; padding: 10px 20px;
-            border-radius: 6px; cursor: pointer; font-weight: 600;
-        }
-        .btn-primary:hover { background: #2563eb; }
-
-        .acoes-batida { display: flex; gap: 10px; }
-        .btn-acao { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; }
-        .btn-acao:hover { color: #fff; }
-
-        ul { list-style: none; padding: 0; margin: 0; }
-        #lista-geral-pontos li {
-            background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 10px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #334155; }
-        th { background: #0f172a; color: var(--text-muted); }
-
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-        .badge-positivo { background: rgba(16,185,129,0.15); color: #10b981; }
-        .badge-negativo { background: rgba(239,68,68,0.15); color: #ef4444; }
-        .badge-neutro { background: rgba(59,130,246,0.15); color: #3b82f6; }
-        
-        .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.7);
-        }
-        .modal-content {
-            background-color: var(--surface-color); margin: 10% auto; padding: 25px;
-            border-radius: 12px; width: 90%; max-width: 400px;
-        }
-    </style>
-</head>
+    <link rel="stylesheet" href="css/style.css">
+    </head>
 <body>
     <div class="container">
         
         <!-- CARD DO COLABORADOR: ESTILO AHGORA MULTI (DARK) -->
         <div class="app-multi-card" id="painel-colaborador">
             
-            <div class="app-brand">
-                <i class="fa-solid fa-fingerprint"></i>
-                PONTOPRO SISTEMAS
+            <div class="app-brand" style="flex-direction: column; gap: 4px; margin-bottom: 40px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i class="fa-solid fa-fingerprint"></i>
+                    GOLDS BEER · PONTO
+                </div>
+                <div style="font-size: 0.7rem; letter-spacing: 1.5px; color: #475569; font-weight: 500;">
+                    TH COMPANY DESDE 2026
+                </div>
             </div>
 
             <!-- Círculo do Relógio -->
@@ -192,8 +29,13 @@
             </div>
 
             <!-- Botão "Espelho de Ponto" (Agota com ID para o JavaScript controlar) -->
-            <button class="btn-espelho" id="btnToggleHistorico">
+            <button class="btn-espelho" id="btnToggleHistorico" style="margin-bottom: 15px;">
                 <i class="fa-solid fa-desktop"></i> Espelho de ponto
+            </button>
+
+            <!-- Botão para solicitar ajuste/correção de ponto -->
+            <button class="btn-espelho" id="btnAbrirSolicitacao" style="border-color:#f59e0b; color:#f59e0b;">
+                <i class="fa-solid fa-pen-to-square"></i> Solicitar ajuste de ponto
             </button>
             
             <!-- Botões Largos de Ação -->
@@ -215,6 +57,14 @@
             <ul id="lista-pontos" style="display: flex; flex-direction: column; gap: 10px;">
                 <!-- JS injeta os pontos aqui -->
             </ul>
+        </div>
+
+        <!-- MINHAS SOLICITAÇÕES DE AJUSTE (colaborador acompanha o status dos próprios pedidos) -->
+        <div class="card" id="minhas-solicitacoes">
+            <h3 style="font-size: 1.1rem; border-bottom: 1px solid #334155; padding-bottom: 10px;">
+                <i class="fa-solid fa-clipboard-list" style="color: #f59e0b;"></i> Minhas Solicitações
+            </h3>
+            <ul id="lista-minhas-solicitacoes" style="display: flex; flex-direction: column; gap: 10px;"></ul>
         </div>
 
         <!-- SEÇÃO ADMIN: LANÇAMENTO MANUAL -->
@@ -240,6 +90,40 @@
             <button id="btnSalvarManual" class="btn-primary" style="width: 100%;"><i class="fa-solid fa-save"></i> Registrar Ponto Manual</button>
         </div>
 
+        <!-- SEÇÃO ADMIN: GESTÃO DE COLABORADORES -->
+        <div class="card" id="secao-colaboradores-admin" style="display: none;">
+            <div class="section-header-flex">
+                <h3 style="border:none; margin:0; padding:0;"><i class="fa-solid fa-users" style="color: var(--accent-color);"></i> Colaboradores</h3>
+                <button id="btnNovoColaborador" class="btn-primary"><i class="fa-solid fa-user-plus"></i> Novo Colaborador</button>
+            </div>
+            <ul id="lista-colaboradores"></ul>
+
+            <hr style="border: 1px solid #334155; margin: 25px 0;">
+
+            <h3 style="font-size: 1.05rem;"><i class="fa-solid fa-calendar-day" style="color: var(--accent-color);"></i> Feriados (afetam o cálculo de hora extra)</h3>
+            <div style="display: flex; gap: 15px; align-items: end; margin-bottom: 15px; flex-wrap: wrap;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Data:</label>
+                    <input type="date" id="inputDataFeriado" class="form-control">
+                </div>
+                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 180px;">
+                    <label>Descrição:</label>
+                    <input type="text" id="inputDescricaoFeriado" class="form-control" placeholder="Ex: Feriado Municipal">
+                </div>
+                <button id="btnAdicionarFeriado" class="btn-primary" style="height: 42px;"><i class="fa-solid fa-plus"></i> Adicionar</button>
+            </div>
+            <ul id="lista-feriados"></ul>
+        </div>
+
+        <!-- SEÇÃO ADMIN: SOLICITAÇÕES DE AJUSTE PENDENTES -->
+        <div class="card" id="secao-solicitacoes-admin" style="display: none;">
+            <div class="section-header-flex">
+                <h3 style="border:none; margin:0; padding:0;"><i class="fa-solid fa-inbox" style="color: #f59e0b;"></i> Solicitações de Ajuste Pendentes</h3>
+                <span id="contadorSolicitacoesPendentes" class="badge badge-neutro">0 pendente(s)</span>
+            </div>
+            <ul id="lista-solicitacoes-pendentes"></ul>
+        </div>
+
         <!-- SEÇÃO ADMIN: AUDITORIA E RELATÓRIO -->
         <div class="card" id="painel-avancado-admin" style="display: none;">
             <h3><i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent-color);"></i> Auditoria de Turnos (Admin)</h3>
@@ -263,6 +147,9 @@
                 
                 <!-- BOTÃO DE PDF -->
                 <button id="btnExportarPDF" class="btn-primary" style="height: 42px; display: none; background-color: var(--success-color);"><i class="fa-solid fa-file-pdf"></i> Baixar PDF</button>
+
+                <!-- BOTÃO DE CSV -->
+                <button id="btnExportarCSV" class="btn-primary" style="height: 42px; display: none; background-color: #64748b;"><i class="fa-solid fa-file-csv"></i> Baixar CSV</button>
             </div>
             
             <div id="container-relatorio"></div>
@@ -288,6 +175,108 @@
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button id="btnSalvarEdicao" class="btn-primary" style="flex: 1; background: var(--success-color);">Salvar</button>
                 <button id="btnCancelarEdicao" class="btn-primary" style="flex: 1; background: #64748b;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE SOLICITAÇÃO DE AJUSTE DE PONTO (colaborador) -->
+    <div id="modal-solicitacao" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px;">Solicitar ajuste de ponto</h3>
+
+            <div class="form-group">
+                <label>O que você precisa?</label>
+                <select id="solicitacaoAcao" class="form-control">
+                    <option value="criar">Registrar um ponto que esqueci de bater</option>
+                    <option value="editar">Corrigir o horário de um ponto já registrado</option>
+                    <option value="excluir">Pedir a exclusão de um ponto registrado por engano</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="campoSelecionarBatida" style="display: none;">
+                <label>Qual ponto?</label>
+                <select id="solicitacaoBatidaId" class="form-control"></select>
+            </div>
+
+            <div id="camposNovoOuEditado">
+                <div class="form-group">
+                    <label>Tipo:</label>
+                    <select id="solicitacaoTipo" class="form-control">
+                        <option value="Entrada">Entrada</option>
+                        <option value="Saída">Saída</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Data e hora corretas:</label>
+                    <input type="datetime-local" id="solicitacaoData" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Motivo (obrigatório):</label>
+                <textarea id="solicitacaoMotivo" class="form-control" rows="3" placeholder="Explique rapidamente o que aconteceu..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btnEnviarSolicitacao" class="btn-primary" style="flex: 1; background: var(--success-color);">Enviar solicitação</button>
+                <button id="btnCancelarSolicitacao" class="btn-primary" style="flex: 1; background: #64748b;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE COLABORADOR (novo / edição) -->
+    <div id="modal-colaborador" class="modal">
+        <div class="modal-content modal-content-lg">
+            <h3 id="tituloModalColaborador" style="margin-bottom: 15px;">Novo Colaborador</h3>
+            <input type="hidden" id="colabUidEditando">
+
+            <div id="camposNovoColaborador">
+                <div class="form-group">
+                    <label>Nome:</label>
+                    <input type="text" id="colabNome" class="form-control" placeholder="Nome completo">
+                </div>
+                <div class="form-group">
+                    <label>E-mail:</label>
+                    <input type="email" id="colabEmail" class="form-control" placeholder="email@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label>Senha provisória:</label>
+                    <input type="password" id="colabSenha" class="form-control" placeholder="Mínimo 6 caracteres">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Cargo:</label>
+                <select id="colabCargo" class="form-control">
+                    <option value="colaborador">Colaborador</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Valor da hora normal (usado para calcular hora extra):</label>
+                <input type="number" id="colabValorHora" class="form-control" step="0.01" min="0" placeholder="Ex: 11.00">
+            </div>
+
+            <label style="display:block; margin-bottom:8px; color: var(--text-muted);">Jornada semanal prevista (horas por dia):</label>
+            <div class="jornada-grid">
+                <div><label>Dom</label><input type="number" id="jornadaDia0" class="form-control" step="0.5" min="0"></div>
+                <div><label>Seg</label><input type="number" id="jornadaDia1" class="form-control" step="0.5" min="0"></div>
+                <div><label>Ter</label><input type="number" id="jornadaDia2" class="form-control" step="0.5" min="0"></div>
+                <div><label>Qua</label><input type="number" id="jornadaDia3" class="form-control" step="0.5" min="0"></div>
+                <div><label>Qui</label><input type="number" id="jornadaDia4" class="form-control" step="0.5" min="0"></div>
+                <div><label>Sex</label><input type="number" id="jornadaDia5" class="form-control" step="0.5" min="0"></div>
+                <div><label>Sáb</label><input type="number" id="jornadaDia6" class="form-control" step="0.5" min="0"></div>
+            </div>
+
+            <div class="checkbox-row">
+                <input type="checkbox" id="colabAtivo" checked>
+                <label for="colabAtivo" style="margin:0;">Colaborador ativo</label>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btnSalvarColaborador" class="btn-primary" style="flex: 1; background: var(--success-color);">Salvar</button>
+                <button id="btnCancelarColaborador" class="btn-primary" style="flex: 1; background: #64748b;">Cancelar</button>
             </div>
         </div>
     </div>
