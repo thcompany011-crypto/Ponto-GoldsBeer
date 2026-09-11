@@ -169,10 +169,20 @@ th { background: #0f172a; color: var(--text-muted); }
 .jornada-grid label { font-size: 0.75rem; text-align: center; }
 .jornada-grid input { text-align: center; padding: 8px 4px; }
 
-/* ---------- Responsivo ---------- */
-@media (max-width: 640px) {
-    .jornada-grid { grid-template-columns: repeat(4, 1fr); }
-    #painel-avancado-admin div[style*="grid-template-columns: 1fr 1fr 1fr"] {
-        grid-template-columns: 1fr !important;
-    }
+/* ---------- Notificações (toast) ---------- */
+#toast-container {
+    position: fixed; top: 20px; right: 20px; z-index: 3000;
+    display: flex; flex-direction: column; gap: 10px; max-width: 340px;
 }
+.toast {
+    padding: 14px 18px; border-radius: 10px; color: #fff; font-size: 0.9rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    display: flex; align-items: center; gap: 10px;
+    animation: toast-in 0.25s ease-out;
+}
+.toast.fade-out { animation: toast-out 0.3s ease-in forwards; }
+.toast-sucesso { background: var(--success-color); }
+.toast-erro { background: var(--danger-color); }
+.toast-info { background: var(--accent-color); }
+@keyframes toast-in { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toast-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0;
