@@ -96,6 +96,9 @@
                 <h3 style="border:none; margin:0; padding:0;"><i class="fa-solid fa-users" style="color: var(--accent-color);"></i> Colaboradores</h3>
                 <button id="btnNovoColaborador" class="btn-primary"><i class="fa-solid fa-user-plus"></i> Novo Colaborador</button>
             </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <input type="text" id="buscaColaborador" class="form-control" placeholder="Buscar colaborador por nome ou e-mail...">
+            </div>
             <ul id="lista-colaboradores"></ul>
 
             <hr style="border: 1px solid #334155; margin: 25px 0;">
@@ -127,6 +130,26 @@
         <!-- SEÇÃO ADMIN: AUDITORIA E RELATÓRIO -->
         <div class="card" id="painel-avancado-admin" style="display: none;">
             <h3><i class="fa-solid fa-magnifying-glass-chart" style="color: var(--accent-color);"></i> Auditoria de Turnos (Admin)</h3>
+
+            <!-- FILTROS DA AUDITORIA -->
+            <div style="display: flex; gap: 15px; align-items: end; margin-bottom: 15px; flex-wrap: wrap;">
+                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 180px;">
+                    <label>Colaborador:</label>
+                    <select id="filtroAuditoriaColaborador" class="form-control">
+                        <option value="">Todos os colaboradores</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>De:</label>
+                    <input type="date" id="filtroAuditoriaInicio" class="form-control">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Até:</label>
+                    <input type="date" id="filtroAuditoriaFim" class="form-control">
+                </div>
+                <button id="btnLimparFiltroAuditoria" class="btn-primary" style="height: 42px; background: #64748b;">Limpar filtros</button>
+            </div>
+
             <ul id="lista-geral-pontos" style="margin-bottom: 30px;"></ul>
             
             <hr style="border: 1px solid #334155; margin: 30px 0;">
@@ -277,6 +300,32 @@
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <button id="btnSalvarColaborador" class="btn-primary" style="flex: 1; background: var(--success-color);">Salvar</button>
                 <button id="btnCancelarColaborador" class="btn-primary" style="flex: 1; background: #64748b;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTAINER DE NOTIFICAÇÕES (toast), substitui o alert() do navegador -->
+    <div id="toast-container"></div>
+
+    <!-- MODAL DE CONFIRMAÇÃO, substitui o confirm() do navegador -->
+    <div id="modal-confirm" class="modal">
+        <div class="modal-content">
+            <p id="modal-confirm-mensagem" style="color:#e2e8f0; margin-bottom:20px; font-size:1.05rem;"></p>
+            <div style="display: flex; gap: 10px;">
+                <button id="btnConfirmSim" class="btn-primary" style="flex: 1; background: var(--danger-color);">Confirmar</button>
+                <button id="btnConfirmNao" class="btn-primary" style="flex: 1; background: #64748b;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE PERGUNTA COM TEXTO, substitui o prompt() do navegador -->
+    <div id="modal-prompt" class="modal">
+        <div class="modal-content">
+            <p id="modal-prompt-mensagem" style="color:#e2e8f0; margin-bottom:10px; font-size:1.05rem;"></p>
+            <textarea id="modal-prompt-input" class="form-control" rows="3"></textarea>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button id="btnPromptOk" class="btn-primary" style="flex: 1; background: var(--success-color);">OK</button>
+                <button id="btnPromptCancelar" class="btn-primary" style="flex: 1; background: #64748b;">Cancelar</button>
             </div>
         </div>
     </div>
