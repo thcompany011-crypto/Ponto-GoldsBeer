@@ -50,6 +50,74 @@ function criarCabecalhoMes(date) {
 // Utilidades
 // ==========================================================
 
+function showToast(mensagem, tipo = "info") {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+    const classeTipo = tipo === "sucesso" ? "toast-sucesso" : tipo === "erro" ? "toast-erro" : "toast-info";
+    const icone = tipo === "sucesso" ? "fa-circle-check" : tipo === "erro" ? "fa-circle-exclamation" : "fa-circle-info";
+
+    const toast = document.createElement("div");
+    toast.className = `toast ${classeTipo}`;
+    toast.innerHTML = `<i class="fa-solid ${icone}"></i><span>${mensagem}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add("fade-out");
+        setTimeout(() => toast.remove(), 300);
+    }, 3800);
+}
+
+function showConfirm(mensagem) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("modal-confirm");
+        document.getElementById("modal-confirm-mensagem").textContent = mensagem;
+        modal.style.display = "block";
+
+        const btnSim = document.getElementById("btnConfirmSim");
+        const btnNao = document.getElementById("btnConfirmNao");
+
+        const limpar = () => {
+            modal.style.display = "none";
+            btnSim.removeEventListener("click", onSim);
+            btnNao.removeEventListener("click", onNao);
+        };
+        const onSim = () => { limpar(); resolve(true); };
+        const onNao = () => { limpar(); resolve(false); };
+
+        btnSim.addEventListener("click", onSim);
+        btnNao.addEventListener("click", onNao);
+    });
+}
+
+function showPrompt(mensagem, valorPadrao = "") {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("modal-prompt");
+        document.getElementById("modal-prompt-mensagem").textContent = mensagem;
+        const input = document.getElementById("modal-prompt-input");
+        input.value = valorPadrao;
+        modal.style.display = "block";
+        input.focus();
+
+        const btnOk = document.getElementById("btnPromptOk");
+        const btnCancelar = document.getElementById("btnPromptCancelar");
+
+        const limpar = () => {
+            modal.style.display = "none";
+            btnOk.removeEventListener("click", onOk);
+            btnCancelar.removeEventListener("click", onCancelar);
+        };
+        const onOk = () => { const valor = input.value; limpar(); resolve(valor); };
+        const onCancelar = () => { limpar(); resolve(null); };
+
+        btnOk.addEventListener("click", onOk);
+        btnCancelar.addEventListener("click", onCancelar);
+    });
+}
+
+function mostrarListaCarregando(listaEl) {
+    if (listaEl) listaEl.innerHTML = `<li class="lista-carregando"><div class="spinner"></div> Carregando...</li>`;
+}
+
 function formatarTempo(horasDecimais) {
     const sinal = horasDecimais < 0 ? "-" : "";
     horasDecimais = Math.abs(horasDecimais);
@@ -154,10 +222,10 @@ async function registrarPonto(tipo, uid, dataHoraManual = null) {
     try {
         const dataBatida = dataHoraManual ? new Date(dataHoraManual).toISOString() : new Date().toISOString();
         await addDoc(collection(db, "batidas"), { uid: uid, tipo: tipo, data: dataBatida });
-        alert(`Ponto de ${tipo} registrado com sucesso!`);
+        showToast(`Ponto de ${tipo} registrado com sucesso!`, "sucesso");
     } catch (error) {
         console.error("Erro ao registrar:", error);
-        alert("Não foi possível registrar o ponto. Verifique sua conexão e tente novamente.");
+        showToast("Não foi possível registrar o ponto. Verifique sua conexão e tente novamente.", "erro");
         throw error;
     }
 }
@@ -229,7 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const colabUid = document.getElementById("selectColaboradorManual").value;
             const tipo = document.getElementById("selectTipoManual").value;
             const dataHora = document.getElementById("inputDataManual").value;
-            if (!colabUid || !dataHora) return alert("Selecione o colaborador e a data/hora.");
+            if (!colabUid || !dataHora) return showToast("Selecione o colaborador e a data/hora.", "erro");
             await registrarPonto(tipo, colabUid, dataHora);
             carregarPainelAdmin();
             if (colabUid === usuarioLogadoUid) carregarHistorico(usuarioLogadoUid);
@@ -289,6 +357,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnCancelarSolicitacao = document.getElementById("btnCancelarSolicitacao");
     if (btnCancelarSolicitacao) btnCancelarSolicitacao.addEventListener("click", () => document.getElementById("modal-solicitacao").style.display = "none");
+
+    // --- Busca de colaboradores ---
+    const buscaColaborador = document.getElementById("buscaColaborador");
+    if (buscaColaborador) buscaColaborador.addEventListener("input", () => renderizarListaColaboradores());
+
+    // --- Filtros da Auditoria de Turnos ---
+    const filtroAuditoriaColaborador = document.getElementById("filtroAuditoriaColaborador");
+    const filtroAuditoriaInicio = document.getElementById("filtroAuditoriaInicio");
+    const filtroAuditoriaFim = document.getElementById("filtroAuditoriaFim");
+    const btnLimparFiltroAuditoria = document.getElementById("btnLimparFiltroAuditoria");
+    if (filtroAuditoriaColaborador) filtroAuditoriaColaborador.addEventListener("change", () => renderizarPainelAdmin());
+    if (filtroAuditoriaInicio) filtroAuditoriaInicio.addEventListener("change", () => renderizarPainelAdmin());
+    if (filtroAuditoriaFim) filtroAuditoriaFim.addEventListener("change", () => renderizarPainelAdmin());
+    if (btnLimparFiltroAuditoria) {
+        btnLimparFiltroAuditoria.addEventListener("click", () => {
+            if (filtroAuditoriaColaborador) filtroAuditoriaColaborador.value = "";
+            if (filtroAuditoriaInicio) filtroAuditoriaInicio.value = "";
+            if (filtroAuditoriaFim) filtroAuditoriaFim.value = "";
+            renderizarPainelAdmin();
+        });
+    }
 });
 
 // ==========================================================
@@ -330,7 +419,17 @@ function renderizarListaColaboradores() {
     if (!lista) return;
     lista.innerHTML = "";
 
-    Object.entries(perfisMap).forEach(([uid, perfil]) => {
+    const termoBusca = (document.getElementById("buscaColaborador")?.value || "").trim().toLowerCase();
+    const entradasFiltradas = Object.entries(perfisMap).filter(([, perfil]) =>
+        !termoBusca || perfil.nome.toLowerCase().includes(termoBusca) || perfil.email.toLowerCase().includes(termoBusca)
+    );
+
+    if (entradasFiltradas.length === 0) {
+        lista.innerHTML = `<li style="justify-content:center; color: var(--text-muted);">Nenhum colaborador encontrado para "${termoBusca}".</li>`;
+        return;
+    }
+
+    entradasFiltradas.forEach(([uid, perfil]) => {
         const li = document.createElement("li");
         const jornadaTexto = (perfil.jornadaSemanal || JORNADA_PADRAO)
             .map((h, i) => `${DIAS_SEMANA_ABREV[i]}:${h}h`)
@@ -411,8 +510,8 @@ async function salvarColaborador() {
             const nome = document.getElementById("colabNome").value.trim();
             const email = document.getElementById("colabEmail").value.trim();
             const senha = document.getElementById("colabSenha").value;
-            if (!nome || !email || !senha) return alert("Preencha nome, e-mail e senha.");
-            if (senha.length < 6) return alert("A senha precisa ter pelo menos 6 caracteres.");
+            if (!nome || !email || !senha) return showToast("Preencha nome, e-mail e senha.", "erro");
+            if (senha.length < 6) return showToast("A senha precisa ter pelo menos 6 caracteres.", "erro");
             await cadastrarColaborador(nome, email, senha, cargo, jornadaSemanal, valorHoraExtra);
         }
 
@@ -421,10 +520,10 @@ async function salvarColaborador() {
         popularSelectColaboradores();
         renderizarListaColaboradores();
         carregarPainelAdmin();
-        alert("Colaborador salvo com sucesso!");
+        showToast("Colaborador salvo com sucesso!", "sucesso");
     } catch (error) {
         console.error("Erro ao salvar colaborador:", error);
-        alert("Erro ao salvar colaborador: " + (error.message || error));
+        showToast("Erro ao salvar colaborador: " + (error.message || error), "erro");
     }
 }
 
@@ -466,7 +565,7 @@ function renderizarListaFeriados() {
         btnDel.style.color = "#ef4444";
         btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
         btnDel.onclick = async () => {
-            if (!confirm(`Remover feriado de ${dia}/${mes}/${ano}?`)) return;
+            if (!(await showConfirm(`Remover feriado de ${dia}/${mes}/${ano}?`))) return;
             await deleteDoc(doc(db, "feriados", f.id));
             await carregarFeriados();
             renderizarListaFeriados();
@@ -482,7 +581,7 @@ function renderizarListaFeriados() {
 async function adicionarFeriado() {
     const inputData = document.getElementById("inputDataFeriado");
     const inputDescricao = document.getElementById("inputDescricaoFeriado");
-    if (!inputData.value) return alert("Selecione a data do feriado.");
+    if (!inputData.value) return showToast("Selecione a data do feriado.", "erro");
 
     await addDoc(collection(db, "feriados"), {
         data: inputData.value, // já vem como "yyyy-mm-dd" do <input type="date">
@@ -535,14 +634,14 @@ function atualizarCamposModalSolicitacao() {
     camposNovoOuEditado.style.display = (acao === "criar" || acao === "editar") ? "block" : "none";
 
     if ((acao === "editar" || acao === "excluir") && minhasBatidasCache.length === 0) {
-        alert("Você ainda não tem nenhum ponto registrado para corrigir ou excluir.");
+        showToast("Você ainda não tem nenhum ponto registrado para corrigir ou excluir.", "erro");
     }
 }
 
 async function enviarSolicitacao() {
     const acao = document.getElementById("solicitacaoAcao").value;
     const motivo = document.getElementById("solicitacaoMotivo").value.trim();
-    if (!motivo) return alert("Descreva o motivo da solicitação.");
+    if (!motivo) return showToast("Descreva o motivo da solicitação.", "erro");
 
     const solicitacao = {
         uid: usuarioLogadoUid,
@@ -562,12 +661,12 @@ async function enviarSolicitacao() {
 
     if (acao === "criar") {
         const dataInformada = document.getElementById("solicitacaoData").value;
-        if (!dataInformada) return alert("Informe a data e hora do ponto esquecido.");
+        if (!dataInformada) return showToast("Informe a data e hora do ponto esquecido.", "erro");
         solicitacao.tipoNovo = document.getElementById("solicitacaoTipo").value;
         solicitacao.dataNova = new Date(dataInformada).toISOString();
     } else {
         const batidaId = document.getElementById("solicitacaoBatidaId").value;
-        if (!batidaId) return alert("Selecione qual ponto você quer ajustar.");
+        if (!batidaId) return showToast("Selecione qual ponto você quer ajustar.", "erro");
         const batidaOriginal = minhasBatidasCache.find(b => b.id === batidaId);
         solicitacao.batidaId = batidaId;
         solicitacao.tipoOriginal = batidaOriginal ? batidaOriginal.tipo : null;
@@ -575,7 +674,7 @@ async function enviarSolicitacao() {
 
         if (acao === "editar") {
             const dataInformada = document.getElementById("solicitacaoData").value;
-            if (!dataInformada) return alert("Informe a data e hora corretas.");
+            if (!dataInformada) return showToast("Informe a data e hora corretas.", "erro");
             solicitacao.tipoNovo = document.getElementById("solicitacaoTipo").value;
             solicitacao.dataNova = new Date(dataInformada).toISOString();
         }
@@ -584,11 +683,11 @@ async function enviarSolicitacao() {
     try {
         await addDoc(collection(db, "solicitacoes"), solicitacao);
         document.getElementById("modal-solicitacao").style.display = "none";
-        alert("Solicitação enviada! O admin vai revisar em breve.");
+        showToast("Solicitação enviada! O admin vai revisar em breve.", "sucesso");
         await carregarMinhasSolicitacoes(usuarioLogadoUid);
     } catch (error) {
         console.error("Erro ao enviar solicitação:", error);
-        alert("Não foi possível enviar a solicitação. Tente novamente.");
+        showToast("Não foi possível enviar a solicitação. Tente novamente.", "erro");
     }
 }
 
@@ -603,6 +702,7 @@ function descreverSolicitacao(sol) {
 async function carregarMinhasSolicitacoes(uid) {
     const lista = document.getElementById("lista-minhas-solicitacoes");
     if (!lista) return;
+    mostrarListaCarregando(lista);
 
     const q = query(collection(db, "solicitacoes"), where("uid", "==", uid));
     const querySnapshot = await getDocs(q);
@@ -641,7 +741,7 @@ async function carregarMinhasSolicitacoes(uid) {
             btnCancelar.innerHTML = '<i class="fa-solid fa-xmark"></i>';
             btnCancelar.title = "Cancelar solicitação";
             btnCancelar.onclick = async () => {
-                if (!confirm("Cancelar esta solicitação?")) return;
+                if (!(await showConfirm("Cancelar esta solicitação?"))) return;
                 await deleteDoc(doc(db, "solicitacoes", sol.id));
                 carregarMinhasSolicitacoes(uid);
             };
@@ -657,6 +757,7 @@ async function carregarSolicitacoesPendentes() {
     const lista = document.getElementById("lista-solicitacoes-pendentes");
     const contador = document.getElementById("contadorSolicitacoesPendentes");
     if (!lista) return;
+    mostrarListaCarregando(lista);
 
     const q = query(collection(db, "solicitacoes"), where("status", "==", "pendente"));
     const querySnapshot = await getDocs(q);
@@ -711,7 +812,7 @@ async function carregarSolicitacoesPendentes() {
 }
 
 async function aprovarSolicitacao(sol) {
-    if (!confirm(`Aprovar a solicitação de ${sol.nome}?`)) return;
+    if (!(await showConfirm(`Aprovar a solicitação de ${sol.nome}?`))) return;
 
     try {
         if (sol.acao === "criar") {
@@ -732,13 +833,13 @@ async function aprovarSolicitacao(sol) {
         if (sol.uid === usuarioLogadoUid) carregarHistorico(usuarioLogadoUid);
     } catch (error) {
         console.error("Erro ao aprovar solicitação:", error);
-        alert("Não foi possível aprovar a solicitação.");
+        showToast("Não foi possível aprovar a solicitação.", "erro");
     }
 }
 
 async function rejeitarSolicitacao(sol) {
-    const motivo = prompt(`Motivo da rejeição para ${sol.nome} (opcional):`, "");
-    if (motivo === null) return; // admin cancelou o prompt
+    const motivo = await showPrompt(`Motivo da rejeição para ${sol.nome}:`, "");
+    if (motivo === null) return; // admin cancelou
 
     try {
         await updateDoc(doc(db, "solicitacoes", sol.id), {
@@ -749,7 +850,7 @@ async function rejeitarSolicitacao(sol) {
         carregarSolicitacoesPendentes();
     } catch (error) {
         console.error("Erro ao rejeitar solicitação:", error);
-        alert("Não foi possível rejeitar a solicitação.");
+        showToast("Não foi possível rejeitar a solicitação.", "erro");
     }
 }
 
@@ -760,6 +861,7 @@ async function rejeitarSolicitacao(sol) {
 async function carregarHistorico(uid) {
     const lista = document.getElementById("lista-pontos");
     if (!lista) return;
+    mostrarListaCarregando(lista);
 
     const q = query(collection(db, "batidas"), where("uid", "==", uid));
     const querySnapshot = await getDocs(q);
@@ -830,9 +932,12 @@ async function carregarHistorico(uid) {
 // Painel Admin / Auditoria de turnos
 // ==========================================================
 
+let jornadasAdminCache = []; // cache das jornadas de todos os colaboradores, para aplicar filtro sem refazer a consulta
+
 async function carregarPainelAdmin() {
     const listaGeral = document.getElementById("lista-geral-pontos");
     if (!listaGeral) return;
+    mostrarListaCarregando(listaGeral);
 
     const querySnapshot = await getDocs(collection(db, "batidas"));
     const batidasPorUsuario = {};
@@ -849,9 +954,56 @@ async function carregarPainelAdmin() {
     }
     jornadasParaExibir.sort((a, b) => b.dataReferencia - a.dataReferencia);
 
+    jornadasAdminCache = jornadasParaExibir;
+    popularSelectFiltroAuditoria();
+    renderizarPainelAdmin();
+}
+
+function popularSelectFiltroAuditoria() {
+    const select = document.getElementById("filtroAuditoriaColaborador");
+    if (!select) return;
+    const valorAtual = select.value;
+    select.innerHTML = '<option value="">Todos os colaboradores</option>';
+    for (const uid in usuariosMap) {
+        const opt = document.createElement("option");
+        opt.value = uid;
+        opt.textContent = usuariosMap[uid];
+        select.appendChild(opt);
+    }
+    select.value = valorAtual; // mantém a seleção ao recarregar
+}
+
+function renderizarPainelAdmin() {
+    const listaGeral = document.getElementById("lista-geral-pontos");
+    if (!listaGeral) return;
+
+    const filtroColaborador = document.getElementById("filtroAuditoriaColaborador")?.value || "";
+    const filtroInicio = document.getElementById("filtroAuditoriaInicio")?.value || "";
+    const filtroFim = document.getElementById("filtroAuditoriaFim")?.value || "";
+
+    let jornadasFiltradas = jornadasAdminCache;
+
+    if (filtroColaborador) {
+        jornadasFiltradas = jornadasFiltradas.filter(j => j.uid === filtroColaborador);
+    }
+    if (filtroInicio) {
+        const inicio = new Date(filtroInicio + "T00:00:00");
+        jornadasFiltradas = jornadasFiltradas.filter(j => j.dataReferencia >= inicio);
+    }
+    if (filtroFim) {
+        const fim = new Date(filtroFim + "T23:59:59");
+        jornadasFiltradas = jornadasFiltradas.filter(j => j.dataReferencia <= fim);
+    }
+
     listaGeral.innerHTML = "";
+
+    if (jornadasFiltradas.length === 0) {
+        listaGeral.innerHTML = `<li style="justify-content:center; color: var(--text-muted);">Nenhum registro encontrado para esse filtro.</li>`;
+        return;
+    }
+
     let mesAtualAdmin = null;
-    jornadasParaExibir.forEach((jornada) => {
+    jornadasFiltradas.forEach((jornada) => {
         const chaveDoMes = chaveMes(jornada.dataReferencia);
         if (chaveDoMes !== mesAtualAdmin) {
             mesAtualAdmin = chaveDoMes;
@@ -908,7 +1060,7 @@ async function carregarPainelAdmin() {
         btnDel.className = "btn-acao";
         btnDel.style.color = "#ef4444";
         btnDel.onclick = async () => {
-            if (!confirm(`Excluir turno de ${nomeColaborador}?`)) return;
+            if (!(await showConfirm(`Excluir turno de ${nomeColaborador}?`))) return;
             if (jornada.entrada) await deleteDoc(doc(db, "batidas", jornada.entrada.id));
             if (jornada.saida) await deleteDoc(doc(db, "batidas", jornada.saida.id));
             carregarPainelAdmin();
@@ -940,11 +1092,13 @@ async function gerarRelatorio() {
     const container = document.getElementById("container-relatorio");
     const inputInicio = document.getElementById("dataInicioRelatorio").value;
     const inputFim = document.getElementById("dataFimRelatorio").value;
-    if (!inputInicio || !inputFim) return alert("Selecione as datas.");
+    if (!inputInicio || !inputFim) return showToast("Selecione as datas.", "erro");
 
     const inicio = new Date(inputInicio + "T00:00:00");
     const fim = new Date(inputFim + "T23:59:59");
-    if (inicio > fim) return alert("A data de início precisa ser antes da data de fim.");
+    if (inicio > fim) return showToast("A data de início precisa ser antes da data de fim.", "erro");
+
+    container.innerHTML = `<div class="lista-carregando"><div class="spinner"></div> Calculando fechamento...</div>`;
 
     // Tolerância para turnos que atravessam a virada do período (ex: entrada 23h50 do último dia)
     const limiteTolerancia = new Date(fim.getTime() + (14 * 60 * 60 * 1000));
@@ -1086,7 +1240,7 @@ function renderizarRelatorioNaTela(container) {
 // ==========================================================
 
 function exportarParaPDF() {
-    if (!dadosRelatorioAtual) return alert("Gere o relatório primeiro.");
+    if (!dadosRelatorioAtual) return showToast("Gere o relatório primeiro.", "erro");
 
     const { jsPDF } = window.jspdf;
     const docPdf = new jsPDF();
@@ -1186,7 +1340,7 @@ function exportarParaPDF() {
 // ==========================================================
 
 function exportarParaCSV() {
-    if (!dadosRelatorioAtual) return alert("Gere o relatório primeiro.");
+    if (!dadosRelatorioAtual) return showToast("Gere o relatório primeiro.", "erro");
     const d = dadosRelatorioAtual;
 
     const linhasCSV = [
