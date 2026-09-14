@@ -18,8 +18,9 @@ const db = getFirestore(app);
  * @param {"colaborador"|"admin"} cargo
  * @param {number[]} jornadaSemanal - array de 7 posições (Dom..Sáb) com horas previstas por dia
  * @param {number} valorHoraExtra - valor base da hora normal, usado para calcular horas extras
+ * @param {Array<{entrada:string|null, saida:string|null}>} horariosSemanais - horário previsto (HH:MM) por dia, usado só para os lembretes
  */
-export async function cadastrarColaborador(nome, email, senha, cargo = "colaborador", jornadaSemanal = [0, 8, 8, 8, 8, 8, 0], valorHoraExtra = 0) {
+export async function cadastrarColaborador(nome, email, senha, cargo = "colaborador", jornadaSemanal = [0, 8, 8, 8, 8, 8, 0], valorHoraExtra = 0, horariosSemanais = []) {
     const configAtual = app.options;
     const secondaryApp = initializeApp(configAtual, "SecondaryApp_" + Math.random().toString(36).substring(7));
     const secondaryAuth = getAuth(secondaryApp);
@@ -34,6 +35,7 @@ export async function cadastrarColaborador(nome, email, senha, cargo = "colabora
             email: email,
             cargo: cargo,
             jornadaSemanal: jornadaSemanal,
+            horariosSemanais: horariosSemanais,
             valorHoraExtra: Number(valorHoraExtra) || 0,
             ativo: true,
             criadoEm: new Date().toISOString()
