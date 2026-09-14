@@ -2,6 +2,7 @@
   "name": "Ponto Golds Beer",
   "short_name": "PontoGB",
   "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
@@ -9,7 +10,20 @@
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2933/2933158.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2933/2933158.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2933/2933158.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
