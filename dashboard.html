@@ -4,8 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ponto Golds Beer | Painel</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933158.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ponto Golds Beer">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
+        }
+    </script>
     </head>
 <body>
     <div class="container">
@@ -28,6 +39,19 @@
                 <div class="clock-time" id="relogio">00:00</div>
             </div>
 
+            <!-- Próximo compromisso previsto (entrada/saída de hoje) -->
+            <div id="avisoProximoCompromisso" style="display:none; margin-bottom:20px; padding:10px 14px; background:#0f172a; border-radius:10px; font-size:0.85rem; color:#94a3b8;"></div>
+
+            <!-- Botão para ativar lembretes (pede permissão de notificação do navegador) -->
+            <button class="btn-espelho" id="btnAtivarLembretes" style="margin-bottom: 15px; display:none;">
+                <i class="fa-solid fa-bell"></i> Ativar lembretes de ponto
+            </button>
+
+            <!-- Botão para exportar horários pra agenda nativa do celular (funciona sem o app aberto) -->
+            <button class="btn-espelho" id="btnExportarAgenda" style="margin-bottom: 15px; border-color:#a78bfa; color:#a78bfa;">
+                <i class="fa-solid fa-calendar-plus"></i> Adicionar horários à minha agenda
+            </button>
+
             <!-- Botão "Espelho de Ponto" (Agota com ID para o JavaScript controlar) -->
             <button class="btn-espelho" id="btnToggleHistorico" style="margin-bottom: 15px;">
                 <i class="fa-solid fa-desktop"></i> Espelho de ponto
@@ -37,6 +61,17 @@
             <button class="btn-espelho" id="btnAbrirSolicitacao" style="border-color:#f59e0b; color:#f59e0b;">
                 <i class="fa-solid fa-pen-to-square"></i> Solicitar ajuste de ponto
             </button>
+
+            <!-- Botão de instalação do app (Android/Desktop). Some sozinho se o navegador não suportar. -->
+            <button class="btn-espelho" id="btnInstalarApp" style="display:none; border-color:#10b981; color:#10b981; margin-top:15px;">
+                <i class="fa-solid fa-download"></i> Instalar App
+            </button>
+
+            <!-- Aviso manual para iOS (Safari não tem instalação automática) -->
+            <div id="avisoInstalarIOS" style="display:none; margin-top:15px; padding:12px; background:#0f172a; border-radius:10px; font-size:0.8rem; color:#94a3b8; text-align:left;">
+                <i class="fa-solid fa-circle-info" style="color:#3b82f6;"></i>
+                Pra instalar no iPhone: toque em <strong>Compartilhar</strong> (ícone de seta) e depois em <strong>"Adicionar à Tela de Início"</strong>.
+            </div>
             
             <!-- Botões Largos de Ação -->
             <div class="acoes-ponto">
@@ -290,6 +325,19 @@
                 <div><label>Qui</label><input type="number" id="jornadaDia4" class="form-control" step="0.5" min="0"></div>
                 <div><label>Sex</label><input type="number" id="jornadaDia5" class="form-control" step="0.5" min="0"></div>
                 <div><label>Sáb</label><input type="number" id="jornadaDia6" class="form-control" step="0.5" min="0"></div>
+            </div>
+
+            <label style="display:block; margin-bottom:8px; margin-top:15px; color: var(--text-muted);">
+                Horário previsto de entrada/saída (usado só para os lembretes — deixe em branco no dia de folga):
+            </label>
+            <div class="jornada-grid">
+                <div><label>Dom</label><input type="time" id="horarioEntradaDia0" class="form-control" style="margin-bottom:4px;"><input type="time" id="horarioSaidaDia0" class="form-control"></div>
+                <div><label>Seg</label><input type="time" id="horarioEntradaDia1" class="form-control" style="margin-bottom:4px;"><input type="time" id="horarioSaidaDia1" class="form-control"></div>
+                <div><label>Ter</label><input type="time" id="horarioEntradaDia2" class="form-control" style="margin-bottom:4px;"><input type="time" id="horarioSaidaDia2" class="form-control"></div>
+                <div><label>Qua</label><input type="time" id="horarioEntradaDia3" class="form-control" style="margin-bottom:4px;"><input type="time" id="horarioSaidaDia3" class="form-control"></div>
+                <div><label>Qui</label><input type="time" id="horarioEntradaDia4" class="form-control" style="margin-bottom:4px;"><input type="time" id="horarioSaidaDia4" class="form-control"></div>
+                <div><label>Sex</label><input type="time" id="horarioEntradaDia5" class="form-control" style="margin-bottom:4px;"><input type="time" id="horarioSaidaDia5" class="form-control"></div>
+                <div><label>Sáb</label><input type="time" id="horarioEntradaDia6" class="form-control" style="margin-bottom:4px;"><input type="time" id="horarioSaidaDia6" class="form-control"></div>
             </div>
 
             <div class="checkbox-row">
