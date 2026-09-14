@@ -21,6 +21,11 @@ let dadosRelatorioAtual = null; // dados usados para exportar PDF/CSV do último
 let minhasBatidasCache = []; // últimas batidas do colaborador logado, para popular o modal de solicitação
 
 const JORNADA_PADRAO = [0, 8, 8, 8, 8, 8, 0]; // usada apenas se o colaborador ainda não tiver jornada cadastrada
+
+// Localização do bar Golds Beer, usada para só permitir bater ponto perto do local.
+const BAR_LATITUDE = -16.373970;
+const BAR_LONGITUDE = -48.979419;
+const RAIO_PERMITIDO_METROS = 150; // ajuste esse valor se o GPS de dentro do bar variar muito
 const DIAS_SEMANA = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 const DIAS_SEMANA_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const NOMES_MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -116,6 +121,259 @@ function showPrompt(mensagem, valorPadrao = "") {
 
 function mostrarListaCarregando(listaEl) {
     if (listaEl) listaEl.innerHTML = `<li class="lista-carregando"><div class="spinner"></div> Carregando...</li>`;
+}
+
+function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
+    // Fórmula de Haversine — distância em linha reta entre duas coordenadas
+    const R = 6371000; // raio da Terra em metros
+    const toRad = (graus) => (graus * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+function obterLocalizacaoAtual() {
+    return new Promise((resolve, reject) => {
+        if (!("geolocation" in navigator)) {
+            reject(new Error("Seu dispositivo ou navegador não suporta geolocalização."));
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (posicao) => resolve({ lat: posicao.coords.latitude, lng: posicao.coords.longitude }),
+            (erro) => {
+                if (erro.code === erro.PERMISSION_DENIED) {
+                    reject(new Error("Você precisa permitir o acesso à localização para bater o ponto."));
+                } else {
+                    reject(new Error("Não foi possível obter sua localização. Tente novamente."));
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    });
+}
+
+async function verificarSeEstaNoBar() {
+    try {
+        const { lat, lng } = await obterLocalizacaoAtual();
+        const distancia = calcularDistanciaMetros(lat, lng, BAR_LATITUDE, BAR_LONGITUDE);
+        if (distancia <= RAIO_PERMITIDO_METROS) return true;
+        showToast(`Você está a ${Math.round(distancia)}m do bar. Só é possível bater ponto no local.`, "erro");
+        return false;
+    } catch (error) {
+        showToast(error.message, "erro");
+        return false;
+    }
+}
+
+// ==========================================================
+// Lembretes de ponto (locais — funcionam com o app aberto, sem backend)
+// ==========================================================
+
+let intervaloLembretes = null;
+let lembretesDisparados = new Set(); // evita repetir o mesmo aviso várias vezes na mesma sessão
+
+function tocarBip() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+    } catch (error) {
+        // ambiente sem suporte a áudio — ignora silenciosamente
+    }
+}
+
+function dispararLembrete(mensagem) {
+    showToast(mensagem, "info");
+    tocarBip();
+    if ("Notification" in window && Notification.permission === "granted") {
+        try {
+            new Notification("Ponto Golds Beer", {
+                body: mensagem,
+                icon: "https://cdn-icons-png.flaticon.com/512/2933/2933158.png"
+            });
+        } catch (error) {
+            console.error("Erro ao mostrar notificação:", error);
+        }
+    }
+}
+
+function atualizarVisibilidadeBotaoLembretes() {
+    const btn = document.getElementById("btnAtivarLembretes");
+    if (!btn) return;
+    if (!("Notification" in window)) { btn.style.display = "none"; return; }
+    btn.style.display = Notification.permission === "default" ? "inline-flex" : "none";
+}
+
+function verificarLembretePonto() {
+    const banner = document.getElementById("avisoProximoCompromisso");
+    if (!banner || !usuarioLogadoUid) return;
+
+    const horariosSemanais = perfisMap[usuarioLogadoUid] && perfisMap[usuarioLogadoUid].horariosSemanais;
+    if (!Array.isArray(horariosSemanais)) { banner.style.display = "none"; return; }
+
+    const agora = new Date();
+    const horarioHoje = horariosSemanais[agora.getDay()];
+    if (!horarioHoje || (!horarioHoje.entrada && !horarioHoje.saida)) {
+        banner.style.display = "none";
+        return;
+    }
+
+    const hojeStr = agora.toLocaleDateString("pt-BR");
+    const jaTemEntradaHoje = minhasBatidasCache.some(b => b.tipo === "Entrada" && new Date(b.data).toLocaleDateString("pt-BR") === hojeStr);
+    const jaTemSaidaHoje = minhasBatidasCache.some(b => b.tipo === "Saída" && new Date(b.data).toLocaleDateString("pt-BR") === hojeStr);
+
+    let tipoAlvo = null;
+    let horarioAlvo = null;
+    if (horarioHoje.entrada && !jaTemEntradaHoje) {
+        tipoAlvo = "Entrada";
+        horarioAlvo = horarioHoje.entrada;
+    } else if (horarioHoje.saida && !jaTemSaidaHoje) {
+        tipoAlvo = "Saída";
+        horarioAlvo = horarioHoje.saida;
+    }
+
+    banner.style.display = "block";
+
+    if (!tipoAlvo) {
+        banner.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Sem mais pontos previstos por hoje.`;
+        return;
+    }
+
+    const [h, m] = horarioAlvo.split(":").map(Number);
+    const alvo = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), h, m, 0);
+    const diffMin = (alvo - agora) / 60000;
+
+    if (diffMin > 0) {
+        banner.innerHTML = `<i class="fa-solid fa-clock" style="color:#3b82f6;"></i> Sua ${tipoAlvo.toLowerCase()} é às ${horarioAlvo} (em ${Math.ceil(diffMin)} min)`;
+    } else {
+        banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Você já deveria ter batido a ${tipoAlvo.toLowerCase()} (${Math.abs(Math.round(diffMin))} min atrás)`;
+    }
+
+    const dataISO = chaveDiaISO(agora);
+    const chave15min = `${dataISO}_${tipoAlvo}_15min`;
+    const chaveAgora = `${dataISO}_${tipoAlvo}_agora`;
+
+    if (diffMin <= 15 && diffMin > 0 && !lembretesDisparados.has(chave15min)) {
+        dispararLembrete(`Faltam ${Math.ceil(diffMin)} minutos para sua ${tipoAlvo.toLowerCase()}!`);
+        lembretesDisparados.add(chave15min);
+    }
+    if (diffMin <= 0 && diffMin > -5 && !lembretesDisparados.has(chaveAgora)) {
+        dispararLembrete(`Hora de bater sua ${tipoAlvo.toLowerCase()}!`);
+        lembretesDisparados.add(chaveAgora);
+    }
+}
+
+function iniciarMonitorDeLembretes() {
+    if (intervaloLembretes) return; // já está rodando, evita duplicar
+    verificarLembretePonto();
+    intervaloLembretes = setInterval(verificarLembretePonto, 30000);
+}
+
+// ==========================================================
+// Exportar horários para a agenda do celular (.ics)
+// ==========================================================
+// Gera lembretes recorrentes semanais nativos do telefone (Google Agenda / Calendário do
+// iPhone). Funciona mesmo com o app fechado ou sem internet, diferente do lembrete local acima.
+
+const DIAS_ICS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]; // códigos de dia da semana no padrão iCalendar
+
+function formatarDataICS(date) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+}
+
+function criarEventoICS({ uid, titulo, diaSemanaIndex, horaMinuto, minutosAntes }) {
+    const [h, m] = horaMinuto.split(":").map(Number);
+    const agora = new Date();
+    // Acha a próxima ocorrência desse dia da semana a partir de hoje, pra servir de DTSTART da recorrência
+    const proxima = new Date(agora);
+    const diasAteOalvo = (diaSemanaIndex - agora.getDay() + 7) % 7;
+    proxima.setDate(agora.getDate() + diasAteOalvo);
+    proxima.setHours(h, m, 0, 0);
+
+    return [
+        "BEGIN:VEVENT",
+        `UID:pontogoldsbeer-${uid}-${diaSemanaIndex}-${horaMinuto.replace(":", "")}@goldsbeer`,
+        `DTSTAMP:${formatarDataICS(agora)}Z`,
+        `DTSTART:${formatarDataICS(proxima)}`,
+        `DTEND:${formatarDataICS(new Date(proxima.getTime() + 5 * 60000))}`,
+        `RRULE:FREQ=WEEKLY;BYDAY=${DIAS_ICS[diaSemanaIndex]}`,
+        `SUMMARY:${titulo}`,
+        "BEGIN:VALARM",
+        `TRIGGER:-PT${minutosAntes}M`,
+        "ACTION:DISPLAY",
+        `DESCRIPTION:${titulo}`,
+        "END:VALARM",
+        "END:VEVENT"
+    ].join("\r\n");
+}
+
+function exportarHorariosParaAgenda() {
+    const perfil = perfisMap[usuarioLogadoUid];
+    const horariosSemanais = perfil && perfil.horariosSemanais;
+
+    if (!Array.isArray(horariosSemanais) || horariosSemanais.every(h => !h || (!h.entrada && !h.saida))) {
+        showToast("Seus horários ainda não foram cadastrados pelo admin. Peça pra configurarem antes de exportar.", "erro");
+        return;
+    }
+
+    const eventos = [];
+    horariosSemanais.forEach((horario, diaSemanaIndex) => {
+        if (!horario) return;
+        if (horario.entrada) {
+            eventos.push(criarEventoICS({
+                uid: usuarioLogadoUid,
+                titulo: "Bater ponto — Entrada (Golds Beer)",
+                diaSemanaIndex,
+                horaMinuto: horario.entrada,
+                minutosAntes: 10
+            }));
+        }
+        if (horario.saida) {
+            eventos.push(criarEventoICS({
+                uid: usuarioLogadoUid,
+                titulo: "Bater ponto — Saída (Golds Beer)",
+                diaSemanaIndex,
+                horaMinuto: horario.saida,
+                minutosAntes: 5
+            }));
+        }
+    });
+
+    if (eventos.length === 0) {
+        showToast("Nenhum horário de entrada/saída cadastrado ainda.", "erro");
+        return;
+    }
+
+    const conteudoICS = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Ponto Golds Beer//PT-BR",
+        "CALSCALE:GREGORIAN",
+        ...eventos,
+        "END:VCALENDAR"
+    ].join("\r\n");
+
+    const blob = new Blob([conteudoICS], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "meus-horarios-golds-beer.ics";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast("Arquivo baixado! Abra ele no celular pra importar na sua agenda.", "sucesso");
 }
 
 function formatarTempo(horasDecimais) {
@@ -268,6 +526,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             carregarHistorico(usuarioLogadoUid);
             carregarMinhasSolicitacoes(usuarioLogadoUid);
+            atualizarVisibilidadeBotaoLembretes();
+            iniciarMonitorDeLembretes();
         } catch (error) {
             console.error("Erro no auth:", error);
         }
@@ -276,8 +536,30 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Registro de ponto (colaborador) ---
     const btnEntrada = document.getElementById("btnEntrada");
     const btnSaida = document.getElementById("btnSaida");
-    if (btnEntrada) btnEntrada.addEventListener("click", () => registrarPonto("Entrada", usuarioLogadoUid).then(() => { carregarHistorico(usuarioLogadoUid); if (ehAdmin) carregarPainelAdmin(); }));
-    if (btnSaida) btnSaida.addEventListener("click", () => registrarPonto("Saída", usuarioLogadoUid).then(() => { carregarHistorico(usuarioLogadoUid); if (ehAdmin) carregarPainelAdmin(); }));
+    if (btnEntrada) {
+        btnEntrada.addEventListener("click", async () => {
+            btnEntrada.disabled = true;
+            showToast("Verificando sua localização...", "info");
+            const permitido = await verificarSeEstaNoBar();
+            btnEntrada.disabled = false;
+            if (!permitido) return;
+            await registrarPonto("Entrada", usuarioLogadoUid);
+            carregarHistorico(usuarioLogadoUid);
+            if (ehAdmin) carregarPainelAdmin();
+        });
+    }
+    if (btnSaida) {
+        btnSaida.addEventListener("click", async () => {
+            btnSaida.disabled = true;
+            showToast("Verificando sua localização...", "info");
+            const permitido = await verificarSeEstaNoBar();
+            btnSaida.disabled = false;
+            if (!permitido) return;
+            await registrarPonto("Saída", usuarioLogadoUid);
+            carregarHistorico(usuarioLogadoUid);
+            if (ehAdmin) carregarPainelAdmin();
+        });
+    }
 
     // --- Espelho de ponto (colaborador) ---
     const btnToggleHistorico = document.getElementById("btnToggleHistorico");
@@ -349,6 +631,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnAbrirSolicitacao = document.getElementById("btnAbrirSolicitacao");
     if (btnAbrirSolicitacao) btnAbrirSolicitacao.addEventListener("click", () => abrirModalSolicitacao());
 
+    // --- Lembretes locais de ponto ---
+    const btnAtivarLembretes = document.getElementById("btnAtivarLembretes");
+    if (btnAtivarLembretes) {
+        btnAtivarLembretes.addEventListener("click", async () => {
+            if (!("Notification" in window)) {
+                showToast("Seu navegador não suporta notificações.", "erro");
+                return;
+            }
+            const permissao = await Notification.requestPermission();
+            atualizarVisibilidadeBotaoLembretes();
+            if (permissao === "granted") {
+                showToast("Lembretes ativados! Você será avisado perto do seu horário.", "sucesso");
+            } else {
+                showToast("Sem permissão de notificação, mas o aviso na tela continua funcionando.", "info");
+            }
+        });
+    }
+
+    const btnExportarAgenda = document.getElementById("btnExportarAgenda");
+    if (btnExportarAgenda) btnExportarAgenda.addEventListener("click", () => exportarHorariosParaAgenda());
+
     const solicitacaoAcao = document.getElementById("solicitacaoAcao");
     if (solicitacaoAcao) solicitacaoAcao.addEventListener("change", () => atualizarCamposModalSolicitacao());
 
@@ -378,6 +681,35 @@ document.addEventListener("DOMContentLoaded", () => {
             renderizarPainelAdmin();
         });
     }
+
+    // --- Instalação do PWA ---
+    const jaInstalado = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    const ehIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
+    if (!jaInstalado && ehIOS) {
+        const aviso = document.getElementById("avisoInstalarIOS");
+        if (aviso) aviso.style.display = "block";
+    }
+
+    let promptDeInstalacao = null;
+    window.addEventListener("beforeinstallprompt", (evento) => {
+        evento.preventDefault();
+        promptDeInstalacao = evento;
+        const btnInstalar = document.getElementById("btnInstalarApp");
+        if (btnInstalar) btnInstalar.style.display = "inline-flex";
+    });
+
+    const btnInstalarApp = document.getElementById("btnInstalarApp");
+    if (btnInstalarApp) {
+        btnInstalarApp.addEventListener("click", async () => {
+            if (!promptDeInstalacao) return;
+            promptDeInstalacao.prompt();
+            const escolha = await promptDeInstalacao.userChoice;
+            if (escolha.outcome === "accepted") showToast("App instalado com sucesso!", "sucesso");
+            promptDeInstalacao = null;
+            btnInstalarApp.style.display = "none";
+        });
+    }
 });
 
 // ==========================================================
@@ -396,6 +728,7 @@ async function mapearUsuarios() {
             email: d.email || "",
             cargo: d.cargo || d.role || "colaborador",
             jornadaSemanal: Array.isArray(d.jornadaSemanal) ? d.jornadaSemanal : null,
+            horariosSemanais: Array.isArray(d.horariosSemanais) ? d.horariosSemanais : null,
             valorHoraExtra: typeof d.valorHoraExtra === "number" ? d.valorHoraExtra : 0,
             ativo: d.ativo !== false
         };
@@ -476,8 +809,11 @@ function abrirModalColaborador(uid = null) {
         document.getElementById("colabValorHora").value = perfil.valorHoraExtra || 0;
         document.getElementById("colabAtivo").checked = perfil.ativo !== false;
         const jornada = perfil.jornadaSemanal || JORNADA_PADRAO;
+        const horarios = perfil.horariosSemanais || [];
         DIAS_SEMANA_ABREV.forEach((_, i) => {
             document.getElementById(`jornadaDia${i}`).value = jornada[i];
+            document.getElementById(`horarioEntradaDia${i}`).value = (horarios[i] && horarios[i].entrada) || "";
+            document.getElementById(`horarioSaidaDia${i}`).value = (horarios[i] && horarios[i].saida) || "";
         });
     } else {
         titulo.textContent = "Novo Colaborador";
@@ -490,6 +826,8 @@ function abrirModalColaborador(uid = null) {
         document.getElementById("colabAtivo").checked = true;
         JORNADA_PADRAO.forEach((h, i) => {
             document.getElementById(`jornadaDia${i}`).value = h;
+            document.getElementById(`horarioEntradaDia${i}`).value = "";
+            document.getElementById(`horarioSaidaDia${i}`).value = "";
         });
     }
 
@@ -502,17 +840,21 @@ async function salvarColaborador() {
     const valorHoraExtra = Number(document.getElementById("colabValorHora").value) || 0;
     const ativo = document.getElementById("colabAtivo").checked;
     const jornadaSemanal = DIAS_SEMANA_ABREV.map((_, i) => Number(document.getElementById(`jornadaDia${i}`).value) || 0);
+    const horariosSemanais = DIAS_SEMANA_ABREV.map((_, i) => ({
+        entrada: document.getElementById(`horarioEntradaDia${i}`).value || null,
+        saida: document.getElementById(`horarioSaidaDia${i}`).value || null
+    }));
 
     try {
         if (uidEditando) {
-            await updateDoc(doc(db, "usuarios", uidEditando), { cargo, jornadaSemanal, valorHoraExtra, ativo });
+            await updateDoc(doc(db, "usuarios", uidEditando), { cargo, jornadaSemanal, horariosSemanais, valorHoraExtra, ativo });
         } else {
             const nome = document.getElementById("colabNome").value.trim();
             const email = document.getElementById("colabEmail").value.trim();
             const senha = document.getElementById("colabSenha").value;
             if (!nome || !email || !senha) return showToast("Preencha nome, e-mail e senha.", "erro");
             if (senha.length < 6) return showToast("A senha precisa ter pelo menos 6 caracteres.", "erro");
-            await cadastrarColaborador(nome, email, senha, cargo, jornadaSemanal, valorHoraExtra);
+            await cadastrarColaborador(nome, email, senha, cargo, jornadaSemanal, valorHoraExtra, horariosSemanais);
         }
 
         document.getElementById("modal-colaborador").style.display = "none";
