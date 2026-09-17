@@ -1,14 +1,14 @@
-const cacheName = 'ponto-pro-v2';
+const cacheName = 'ponto-pro-v3'; // versão trocada para forçar limpar o cache antigo com caminhos errados
 const assets = [
-  '/',
-  '/index.html',
-  '/login.html',
-  '/dashboard.html',
-  '/css/style.css',
-  '/js/firebase.js',
-  '/js/auth.js',
-  '/js/login.js',
-  '/js/dashboard.js'
+  './',
+  './index.html',
+  './login.html',
+  './dashboard.html',
+  './css/style.css',
+  './js/firebase.js',
+  './js/auth.js',
+  './js/login.js',
+  './js/dashboard.js'
 ];
 
 self.addEventListener('install', (e) => {
