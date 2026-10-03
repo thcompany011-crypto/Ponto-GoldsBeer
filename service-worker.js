@@ -1,4 +1,4 @@
-const cacheName = 'ponto-pro-v3'; // versão trocada para forçar limpar o cache antigo com caminhos errados
+const cacheName = 'ponto-pro-v4'; // versão trocada para forçar limpar o cache antigo com caminhos errados
 const assets = [
   './',
   './index.html',
