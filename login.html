@@ -1,47 +1,234 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ponto Golds Beer | Login</title>
+
+    <title>Gold's Beer | Ponto</title>
+
     <link rel="manifest" href="manifest.json">
+
     <meta name="theme-color" content="#0f172a">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933158.png">
+
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Ponto Golds Beer">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="apple-mobile-web-app-title" content="Gold's Beer">
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" href="css/style.css">
+
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./service-worker.js');
         }
     </script>
-    </head>
-<body class="pagina-login">
-    <div class="login-container">
-        <div class="relogio-circulo" id="relogio-login">00:00</div>
-        
-        <h2 style="color: white; margin-top: 0;">Ponto Golds Beer</h2>
-        <p style="color: var(--text-muted); margin-bottom: 25px;">Identifique-se para bater o ponto</p>
+</head>
 
+<body class="pagina-login">
+
+    <div class="login-container">
+
+        <!-- LOGO -->
+        <div class="logo-login">
+            <img src="logo.png" alt="Gold's Beer">
+        </div>
+
+        <!-- RELÓGIO -->
+        <div class="relogio-circulo" id="relogio-login">
+            00:00
+        </div>
+
+        <h2>Controle de Ponto</h2>
+
+        <p class="login-subtitulo">
+            Identifique-se para bater o ponto
+        </p>
+
+        <!-- =========================
+             LOGIN
+        ========================== -->
         <form id="formLogin">
-            <input type="email" id="email" class="form-control" placeholder="E-mail" required>
-            <input type="password" id="senha" class="form-control" placeholder="Senha" required>
-            <button type="submit" id="btnAcesso" class="btn-autenticar">ENTRAR</button>
-            <div id="msgErro" class="msg-erro">E-mail ou senha incorretos.</div>
+
+            <!-- E-MAIL -->
+            <div class="campo-login">
+                <i class="fa-solid fa-envelope"></i>
+
+                <input
+                    type="email"
+                    id="email"
+                    class="form-control"
+                    placeholder="E-mail"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <!-- SENHA -->
+            <div class="campo-login campo-senha">
+
+                <i class="fa-solid fa-lock"></i>
+
+                <input
+                    type="password"
+                    id="senha"
+                    class="form-control"
+                    placeholder="Senha"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <!-- BOTÃO VER SENHA -->
+                <button
+                    type="button"
+                    id="btnVerSenha"
+                    class="btn-ver-senha"
+                    aria-label="Mostrar senha"
+                    title="Mostrar senha"
+                >
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+
+            </div>
+
+            <!-- BOTÃO ENTRAR -->
+            <button
+                type="submit"
+                id="btnAcesso"
+                class="btn-autenticar"
+            >
+                <i class="fa-solid fa-right-to-bracket"></i>
+                ENTRAR
+            </button>
+
+            <!-- ERRO -->
+            <div id="msgErro" class="msg-erro">
+                E-mail ou senha incorretos.
+            </div>
+
         </form>
 
-        <div style="margin-top: 25px; font-size: 0.65rem; letter-spacing: 1.5px; color: #475569; font-weight: 500;">
+
+        <!-- =========================
+             REDEFINIR SENHA
+        ========================== -->
+
+        <div class="esqueci-senha-container">
+
+            <button
+                type="button"
+                id="btnAbrirRedefinir"
+                class="btn-esqueci-senha"
+            >
+                <i class="fa-solid fa-key"></i>
+                Esqueci minha senha
+            </button>
+
+        </div>
+
+
+        <!-- ÁREA DE REDEFINIÇÃO -->
+
+        <div
+            id="areaRedefinirSenha"
+            class="area-redefinir-senha"
+        >
+
+            <div class="redefinir-titulo">
+                <i class="fa-solid fa-key"></i>
+
+                <span>Redefinir senha</span>
+            </div>
+
+            <p>
+                Digite seu e-mail e enviaremos um link
+                para você criar uma nova senha.
+            </p>
+
+            <div class="campo-login">
+
+                <i class="fa-solid fa-envelope"></i>
+
+                <input
+                    type="email"
+                    id="emailRedefinir"
+                    class="form-control"
+                    placeholder="Seu e-mail"
+                    autocomplete="email"
+                >
+
+            </div>
+
+            <button
+                type="button"
+                id="btnRedefinirSenha"
+                class="btn-redefinir"
+            >
+                <i class="fa-solid fa-paper-plane"></i>
+                ENVIAR LINK
+            </button>
+
+            <button
+                type="button"
+                id="btnCancelarRedefinir"
+                class="btn-cancelar-redefinir"
+            >
+                Cancelar
+            </button>
+
+            <div
+                id="msgRedefinir"
+                class="msg-redefinir"
+            ></div>
+
+        </div>
+
+
+        <!-- RODAPÉ -->
+
+        <div class="login-footer">
             TH COMPANY DESDE 2026
         </div>
+
     </div>
 
+
+    <!-- LOGIN JS -->
     <script type="module" src="js/login.js"></script>
+
+
+    <!-- RELÓGIO -->
+
     <script>
-        setInterval(() => {
-            document.getElementById('relogio-login').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        }, 1000);
+
+        function atualizarRelogio() {
+
+            const relogio =
+                document.getElementById('relogio-login');
+
+            if (!relogio) return;
+
+            relogio.textContent =
+                new Date().toLocaleTimeString(
+                    'pt-BR',
+                    {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }
+                );
+        }
+
+        atualizarRelogio();
+
+        setInterval(
+            atualizarRelogio,
+            1000
+        );
+
     </script>
+
 </body>
+
 </html>
