@@ -181,6 +181,368 @@ th { background: #0f172a; color: var(--text-muted); }
     animation: toast-in 0.25s ease-out;
 }
 .toast.fade-out { animation: toast-out 0.3s ease-in forwards; }
+/* ==========================================================
+   LOGIN GOLD'S BEER
+   ========================================================== */
+
+
+/* ---------- LOGO ---------- */
+
+.logo-login {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.logo-login img {
+    width: 230px;
+    max-width: 80%;
+    height: auto;
+    object-fit: contain;
+}
+
+
+/* ---------- TÍTULO ---------- */
+
+.login-container h2 {
+    color: #ffffff;
+    margin: 5px 0 8px;
+    font-size: 1.5rem;
+}
+
+.login-subtitulo {
+    color: var(--text-muted);
+    margin: 0 0 25px;
+}
+
+
+/* ---------- CAMPOS ---------- */
+
+.campo-login {
+    position: relative;
+    width: 100%;
+    margin-bottom: 14px;
+}
+
+.campo-login > i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.campo-login .form-control {
+    padding-left: 45px;
+    padding-right: 15px;
+    height: 52px;
+}
+
+
+/* ---------- CAMPO DE SENHA ---------- */
+
+.campo-senha .form-control {
+    padding-right: 50px;
+}
+
+
+/* ---------- BOTÃO VER SENHA ---------- */
+
+.btn-ver-senha {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    background: transparent;
+
+    color: #64748b;
+
+    cursor: pointer;
+
+    border-radius: 6px;
+
+    transition: 0.2s;
+}
+
+.btn-ver-senha:hover {
+    color: #ffffff;
+    background: rgba(255,255,255,0.05);
+}
+
+
+/* ---------- BOTÃO LOGIN ---------- */
+
+.btn-autenticar {
+    margin-top: 5px;
+    height: 54px;
+}
+
+.btn-autenticar i {
+    margin-right: 7px;
+}
+
+.btn-autenticar:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+
+/* ---------- ESQUECI A SENHA ---------- */
+
+.esqueci-senha-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.btn-esqueci-senha {
+    background: none;
+    border: none;
+
+    color: #94a3b8;
+
+    cursor: pointer;
+
+    font-size: 0.9rem;
+
+    padding: 8px 10px;
+
+    transition: 0.2s;
+}
+
+.btn-esqueci-senha:hover {
+    color: #ffffff;
+}
+
+.btn-esqueci-senha i {
+    margin-right: 6px;
+}
+
+
+/* ==========================================================
+   ÁREA REDEFINIR SENHA
+   ========================================================== */
+
+.area-redefinir-senha {
+    display: none;
+
+    margin-top: 20px;
+
+    padding: 20px;
+
+    background: #0f172a;
+
+    border: 1px solid #334155;
+
+    border-radius: 12px;
+
+    text-align: left;
+
+    animation: aparecerRedefinir 0.25s ease;
+}
+
+.area-redefinir-senha.ativo {
+    display: block;
+}
+
+@keyframes aparecerRedefinir {
+
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+/* ---------- TÍTULO REDEFINIÇÃO ---------- */
+
+.redefinir-titulo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    color: #ffffff;
+
+    font-size: 1rem;
+
+    font-weight: 700;
+
+    margin-bottom: 8px;
+}
+
+.redefinir-titulo i {
+    color: #f59e0b;
+}
+
+
+/* ---------- TEXTO ---------- */
+
+.area-redefinir-senha p {
+    color: #94a3b8;
+
+    font-size: 0.82rem;
+
+    line-height: 1.5;
+
+    margin: 0 0 15px;
+}
+
+
+/* ---------- BOTÃO ENVIAR ---------- */
+
+.btn-redefinir {
+    width: 100%;
+
+    height: 46px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #f59e0b;
+
+    color: #111827;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.btn-redefinir:hover {
+    background: #d97706;
+}
+
+.btn-redefinir:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.btn-redefinir i {
+    margin-right: 6px;
+}
+
+
+/* ---------- CANCELAR ---------- */
+
+.btn-cancelar-redefinir {
+    width: 100%;
+
+    margin-top: 8px;
+
+    padding: 8px;
+
+    background: transparent;
+
+    border: none;
+
+    color: #64748b;
+
+    cursor: pointer;
+
+    font-size: 0.8rem;
+}
+
+.btn-cancelar-redefinir:hover {
+    color: #ffffff;
+}
+
+
+/* ---------- MENSAGEM REDEFINIÇÃO ---------- */
+
+.msg-redefinir {
+    display: none;
+
+    margin-top: 12px;
+
+    padding: 10px;
+
+    border-radius: 7px;
+
+    font-size: 0.78rem;
+
+    line-height: 1.4;
+}
+
+.msg-redefinir:not(:empty) {
+    display: block;
+}
+
+.msg-redefinir.sucesso {
+    color: #34d399;
+
+    background: rgba(16,185,129,0.10);
+
+    border: 1px solid rgba(16,185,129,0.20);
+}
+
+.msg-redefinir.erro {
+    color: #f87171;
+
+    background: rgba(239,68,68,0.10);
+
+    border: 1px solid rgba(239,68,68,0.20);
+}
+
+
+/* ---------- RODAPÉ ---------- */
+
+.login-footer {
+    margin-top: 25px;
+
+    font-size: 0.65rem;
+
+    letter-spacing: 1.5px;
+
+    color: #475569;
+
+    font-weight: 500;
+
+    text-align: center;
+}
+
+
+/* ==========================================================
+   CELULAR
+   ========================================================== */
+
+@media (max-width: 480px) {
+
+    .login-container {
+        padding: 30px 20px;
+    }
+
+    .logo-login img {
+        width: 200px;
+    }
+
+    .relogio-circulo {
+        width: 135px;
+        height: 135px;
+        font-size: 2.7rem;
+        margin-bottom: 20px;
+    }
+
+}
 .toast-sucesso { background: var(--success-color); }
 .toast-erro { background: var(--danger-color); }
 .toast-info { background: var(--accent-color); }
