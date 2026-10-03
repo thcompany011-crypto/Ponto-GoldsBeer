@@ -1811,3 +1811,1096 @@ th {
             translateX(30px);
     }
 }
+/* ==========================================================
+   ==========================================================
+   GOLD'S BEER — NOVO VISUAL DO DASHBOARD
+   ==========================================================
+   Mesmo padrão visual da tela de LOGIN
+   ========================================================== */
+
+
+/* ==========================================================
+   DASHBOARD — FUNDO PRINCIPAL
+   ========================================================== */
+
+body.pagina-dashboard {
+
+    min-height: 100vh;
+
+    margin: 0;
+
+    color: var(--gold-white);
+
+    background:
+        radial-gradient(
+            circle at 0% 20%,
+            rgba(255, 157, 0, 0.12) 0,
+            transparent 18%
+        ),
+        radial-gradient(
+            circle at 100% 75%,
+            rgba(255, 157, 0, 0.10) 0,
+            transparent 20%
+        ),
+        linear-gradient(
+            135deg,
+            #010305 0%,
+            #03080d 45%,
+            #010305 100%
+        );
+
+    overflow-x: hidden;
+
+    position: relative;
+
+}
+
+
+/* ==========================================================
+   BOLHAS DOURADAS
+   MESMO EFEITO DA TELA DE LOGIN
+   ========================================================== */
+
+body.pagina-dashboard::before,
+body.pagina-dashboard::after {
+
+    content: "";
+
+    position: fixed;
+
+    width: 320px;
+
+    height: 100%;
+
+    top: 0;
+
+    pointer-events: none;
+
+    opacity: .78;
+
+    z-index: 0;
+
+    background-image:
+
+        radial-gradient(
+            circle at 20% 15%,
+            rgba(255,157,0,.45) 0 4px,
+            transparent 5px
+        ),
+
+        radial-gradient(
+            circle at 35% 30%,
+            rgba(255,157,0,.28) 0 8px,
+            transparent 9px
+        ),
+
+        radial-gradient(
+            circle at 10% 45%,
+            rgba(255,157,0,.32) 0 5px,
+            transparent 6px
+        ),
+
+        radial-gradient(
+            circle at 45% 60%,
+            rgba(255,157,0,.25) 0 10px,
+            transparent 11px
+        ),
+
+        radial-gradient(
+            circle at 20% 80%,
+            rgba(255,157,0,.35) 0 6px,
+            transparent 7px
+        ),
+
+        radial-gradient(
+            circle at 65% 90%,
+            rgba(255,157,0,.25) 0 12px,
+            transparent 13px
+        );
+
+    background-size:
+
+        120px 150px,
+        170px 200px,
+        100px 180px,
+        220px 230px,
+        130px 170px,
+        250px 250px;
+
+    filter: blur(.2px);
+
+}
+
+
+body.pagina-dashboard::before {
+
+    left: 0;
+
+}
+
+
+body.pagina-dashboard::after {
+
+    right: 0;
+
+    transform: scaleX(-1);
+
+}
+
+
+/* ==========================================================
+   CONTAINER
+   ========================================================== */
+
+body.pagina-dashboard .container {
+
+    position: relative;
+
+    z-index: 1;
+
+    max-width: 1000px;
+
+    margin: 0 auto;
+
+    padding:
+        35px 20px 60px;
+
+}
+
+
+/* ==========================================================
+   CARD PRINCIPAL
+   ========================================================== */
+
+body.pagina-dashboard .app-multi-card {
+
+    position: relative;
+
+    overflow: hidden;
+
+    max-width: 460px;
+
+    margin:
+        0 auto 40px;
+
+    padding:
+        32px 25px 30px;
+
+    border-radius: 24px;
+
+    border:
+        1px solid rgba(56,81,106,.95);
+
+    background:
+
+        linear-gradient(
+            145deg,
+            rgba(7,16,25,.97),
+            rgba(2,6,9,.98)
+        );
+
+    box-shadow:
+
+        0 25px 70px
+        rgba(0,0,0,.55),
+
+        0 0 40px
+        rgba(255,157,0,.035);
+
+    text-align: center;
+
+}
+
+
+/* brilho interno superior */
+
+body.pagina-dashboard .app-multi-card::before {
+
+    content: "";
+
+    position: absolute;
+
+    top: -100px;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: 280px;
+
+    height: 180px;
+
+    background:
+
+        radial-gradient(
+            ellipse,
+            rgba(255,157,0,.08),
+            transparent 70%
+        );
+
+    pointer-events: none;
+
+}
+
+
+/* ==========================================================
+   MARCA DO DASHBOARD
+   ========================================================== */
+
+.dashboard-brand {
+
+    position: relative;
+
+    z-index: 2;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    margin-bottom: 28px;
+
+}
+
+
+.dashboard-logo {
+
+    display: block;
+
+    width: 230px;
+
+    max-width: 85%;
+
+    height: auto;
+
+    object-fit: contain;
+
+    margin:
+        0 auto 8px;
+
+    filter:
+
+        drop-shadow(
+            0 0 14px
+            rgba(255,157,0,.10)
+        );
+
+}
+
+
+.dashboard-brand-subtitle {
+
+    color: #dce5ee;
+
+    font-size: .82rem;
+
+    font-weight: 700;
+
+    letter-spacing: 2.5px;
+
+}
+
+
+.dashboard-brand-company {
+
+    margin-top: 5px;
+
+    color: #526b84;
+
+    font-size: .63rem;
+
+    font-weight: 500;
+
+    letter-spacing: 2px;
+
+}
+
+
+/* ==========================================================
+   RELÓGIO
+   ========================================================== */
+
+body.pagina-dashboard .clock-circle {
+
+    position: relative;
+
+    z-index: 2;
+
+    width: 176px;
+
+    height: 176px;
+
+    margin:
+        0 auto 25px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 50%;
+
+    border:
+        2px solid
+        var(--gold-orange);
+
+    background:
+
+        radial-gradient(
+            circle,
+            #0b1219 0%,
+            #020609 72%
+        );
+
+    box-shadow:
+
+        0 0 0 5px
+        rgba(255,157,0,.08),
+
+        inset 0 0 35px
+        rgba(255,157,0,.035),
+
+        0 0 25px
+        rgba(255,157,0,.08);
+
+}
+
+
+body.pagina-dashboard .clock-time {
+
+    color: #ffffff;
+
+    font-size: 3.15rem;
+
+    font-weight: 700;
+
+    letter-spacing: -2px;
+
+    line-height: 1;
+
+    font-variant-numeric: tabular-nums;
+
+}
+
+
+/* ==========================================================
+   AVISO DE COMPROMISSO
+   ========================================================== */
+
+.dashboard-aviso-compromisso {
+
+    position: relative;
+
+    z-index: 2;
+
+    margin:
+        0 auto 18px;
+
+    padding:
+        11px 14px;
+
+    border:
+        1px solid #263d52;
+
+    border-radius: 10px;
+
+    background:
+        rgba(4,11,17,.88);
+
+    color: #9aadc2;
+
+    font-size: .82rem;
+
+}
+
+
+/* ==========================================================
+   BOTÕES SECUNDÁRIOS
+   ========================================================== */
+
+body.pagina-dashboard .btn-espelho {
+
+    position: relative;
+
+    z-index: 2;
+
+    width: auto;
+
+    min-width: 190px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    display: block;
+
+    padding:
+        10px 18px;
+
+    border:
+        1px solid #38516a;
+
+    border-radius: 9px;
+
+    background:
+
+        rgba(2,6,9,.55);
+
+    color: #b8c8d8;
+
+    font-size: .88rem;
+
+    font-weight: 600;
+
+    transition:
+
+        border-color .2s ease,
+        color .2s ease,
+        background .2s ease,
+        transform .15s ease;
+
+}
+
+
+body.pagina-dashboard .btn-espelho:hover {
+
+    border-color:
+        var(--gold-orange);
+
+    color:
+        var(--gold-orange);
+
+    background:
+        rgba(255,157,0,.06);
+
+    transform:
+        translateY(-1px);
+
+}
+
+
+body.pagina-dashboard .btn-espelho i {
+
+    margin-right: 7px;
+
+}
+
+
+/* ==========================================================
+   AGENDA
+   ========================================================== */
+
+body.pagina-dashboard .btn-agenda {
+
+    border-color:
+        #a78bfa;
+
+    color:
+        #c4b5fd;
+
+}
+
+
+body.pagina-dashboard .btn-agenda:hover {
+
+    border-color:
+        #c4b5fd;
+
+    color:
+        #ddd6fe;
+
+    background:
+        rgba(167,139,250,.08);
+
+}
+
+
+/* ==========================================================
+   AJUSTE DE PONTO
+   ========================================================== */
+
+body.pagina-dashboard .btn-ajuste {
+
+    border-color:
+        var(--gold-orange);
+
+    color:
+        var(--gold-orange);
+
+}
+
+
+body.pagina-dashboard .btn-ajuste:hover {
+
+    background:
+        rgba(255,157,0,.07);
+
+}
+
+
+/* ==========================================================
+   INSTALAR APP
+   ========================================================== */
+
+body.pagina-dashboard .btn-instalar {
+
+    border-color:
+        #10b981;
+
+    color:
+        #10b981;
+
+}
+
+
+body.pagina-dashboard .btn-instalar:hover {
+
+    background:
+        rgba(16,185,129,.08);
+
+}
+
+
+/* ==========================================================
+   AVISO IOS
+   ========================================================== */
+
+body.pagina-dashboard .dashboard-aviso-ios {
+
+    position: relative;
+
+    z-index: 2;
+
+    margin-top: 15px;
+
+    padding: 12px;
+
+    border:
+        1px solid #263d52;
+
+    border-radius: 10px;
+
+    background:
+        rgba(4,11,17,.88);
+
+    color:
+        #94a3b8;
+
+    text-align: left;
+
+    font-size: .78rem;
+
+    line-height: 1.5;
+
+}
+
+
+body.pagina-dashboard .dashboard-aviso-ios i {
+
+    color:
+        #3b82f6;
+
+    margin-right: 5px;
+
+}
+
+
+/* ==========================================================
+   ÁREA DOS BOTÕES DE PONTO
+   ========================================================== */
+
+body.pagina-dashboard .acoes-ponto {
+
+    position: relative;
+
+    z-index: 2;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+
+    margin-top: 25px;
+
+}
+
+
+/* ==========================================================
+   BOTÕES ENTRADA / SAÍDA
+   ========================================================== */
+
+body.pagina-dashboard .btn-ponto {
+
+    width: 100%;
+
+    min-height: 62px;
+
+    border-radius: 12px;
+
+    border: none;
+
+    font-size: 1rem;
+
+    font-weight: 800;
+
+    letter-spacing: .2px;
+
+    box-shadow:
+        0 8px 20px rgba(0,0,0,.25);
+
+    transition:
+        transform .15s ease,
+        filter .2s ease,
+        box-shadow .2s ease;
+
+}
+
+
+body.pagina-dashboard .btn-ponto:hover {
+
+    filter:
+        brightness(1.06);
+
+    transform:
+        translateY(-1px);
+
+}
+
+
+body.pagina-dashboard .btn-ponto:active {
+
+    transform:
+        scale(.985);
+
+}
+
+
+/* ==========================================================
+   ENTRADA
+   ========================================================== */
+
+body.pagina-dashboard .btn-entrada {
+
+    background:
+        linear-gradient(
+            180deg,
+            #13c78b,
+            #0eae78
+        );
+
+    box-shadow:
+        0 8px 22px
+        rgba(16,185,129,.14);
+
+}
+
+
+/* ==========================================================
+   SAÍDA
+   ========================================================== */
+
+body.pagina-dashboard .btn-saida {
+
+    background:
+        linear-gradient(
+            180deg,
+            #ef5350,
+            #dc2626
+        );
+
+    box-shadow:
+        0 8px 22px
+        rgba(239,68,68,.12);
+
+}
+
+
+/* ==========================================================
+   CARDS DO RESTANTE DO SISTEMA
+   ========================================================== */
+
+body.pagina-dashboard .card {
+
+    position: relative;
+
+    z-index: 1;
+
+    background:
+
+        linear-gradient(
+            145deg,
+            rgba(7,16,25,.96),
+            rgba(3,8,13,.97)
+        );
+
+    border:
+        1px solid #263d52;
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 15px 40px
+        rgba(0,0,0,.35);
+
+}
+
+
+/* ==========================================================
+   TÍTULOS
+   ========================================================== */
+
+body.pagina-dashboard h2,
+body.pagina-dashboard h3 {
+
+    color:
+        #f5f7fa;
+
+}
+
+
+body.pagina-dashboard h3 {
+
+    letter-spacing:
+        -.1px;
+
+}
+
+
+/* ==========================================================
+   FORMULÁRIOS
+   ========================================================== */
+
+body.pagina-dashboard .form-control {
+
+    border:
+        1px solid #38516a;
+
+    background:
+        #050c13;
+
+    color:
+        #ffffff;
+
+}
+
+
+body.pagina-dashboard .form-control:focus {
+
+    border-color:
+        var(--gold-orange);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(255,157,0,.08);
+
+}
+
+
+body.pagina-dashboard .form-group label {
+
+    color:
+        #9aadc2;
+
+}
+
+
+/* ==========================================================
+   BOTÕES ADMIN
+   ========================================================== */
+
+body.pagina-dashboard .btn-primary {
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffab12,
+            #e98200
+        );
+
+    color:
+        #111;
+
+    border:
+        none;
+
+    box-shadow:
+        0 5px 15px
+        rgba(255,157,0,.10);
+
+}
+
+
+body.pagina-dashboard .btn-primary:hover {
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffb020,
+            #f28b00
+        );
+
+    filter:
+        brightness(1.04);
+
+}
+
+
+/* ==========================================================
+   TABELAS
+   ========================================================== */
+
+body.pagina-dashboard table {
+
+    border-color:
+        #263d52;
+
+}
+
+
+body.pagina-dashboard th {
+
+    background:
+        #071019;
+
+    color:
+        var(--gold-orange);
+
+}
+
+
+body.pagina-dashboard td {
+
+    border-color:
+        #263d52;
+
+}
+
+
+/* ==========================================================
+   HR
+   ========================================================== */
+
+body.pagina-dashboard hr {
+
+    border-color:
+        #263d52 !important;
+
+}
+
+
+/* ==========================================================
+   MODAIS
+   ========================================================== */
+
+body.pagina-dashboard .modal-content {
+
+    background:
+
+        linear-gradient(
+            145deg,
+            #071019,
+            #020609
+        );
+
+    border:
+        1px solid #38516a;
+
+    box-shadow:
+        0 25px 70px
+        rgba(0,0,0,.65);
+
+}
+
+
+/* ==========================================================
+   SCROLLBAR
+   ========================================================== */
+
+body.pagina-dashboard::-webkit-scrollbar {
+
+    width: 9px;
+
+}
+
+
+body.pagina-dashboard::-webkit-scrollbar-track {
+
+    background:
+        #020609;
+
+}
+
+
+body.pagina-dashboard::-webkit-scrollbar-thumb {
+
+    background:
+        #263d52;
+
+    border-radius:
+        10px;
+
+}
+
+
+body.pagina-dashboard::-webkit-scrollbar-thumb:hover {
+
+    background:
+        var(--gold-orange);
+
+}
+
+
+/* ==========================================================
+   MOBILE
+   ========================================================== */
+
+@media (max-width: 600px) {
+
+    body.pagina-dashboard .container {
+
+        padding:
+            20px 12px 40px;
+
+    }
+
+
+    body.pagina-dashboard .app-multi-card {
+
+        max-width:
+            100%;
+
+        padding:
+            28px 17px 25px;
+
+        border-radius:
+            20px;
+
+    }
+
+
+    .dashboard-logo {
+
+        width:
+            205px;
+
+    }
+
+
+    .dashboard-brand-subtitle {
+
+        font-size:
+            .74rem;
+
+        letter-spacing:
+            2px;
+
+    }
+
+
+    .dashboard-brand-company {
+
+        font-size:
+            .57rem;
+
+        letter-spacing:
+            1.5px;
+
+    }
+
+
+    body.pagina-dashboard .clock-circle {
+
+        width:
+            150px;
+
+        height:
+            150px;
+
+        margin-bottom:
+            22px;
+
+    }
+
+
+    body.pagina-dashboard .clock-time {
+
+        font-size:
+            2.65rem;
+
+    }
+
+
+    body.pagina-dashboard .btn-espelho {
+
+        width:
+            100%;
+
+        max-width:
+            320px;
+
+    }
+
+
+    body.pagina-dashboard .btn-ponto {
+
+        min-height:
+            58px;
+
+        font-size:
+            .92rem;
+
+    }
+
+
+    body.pagina-dashboard::before,
+    body.pagina-dashboard::after {
+
+        width:
+            150px;
+
+        opacity:
+            .55;
+
+    }
+
+}
+
+
+/* ==========================================================
+   TELAS MUITO PEQUENAS
+   ========================================================== */
+
+@media (max-width: 380px) {
+
+    .dashboard-logo {
+
+        width:
+            185px;
+
+    }
+
+
+    body.pagina-dashboard .clock-circle {
+
+        width:
+            135px;
+
+        height:
+            135px;
+
+    }
+
+
+    body.pagina-dashboard .clock-time {
+
+        font-size:
+            2.35rem;
+
+    }
+
+}
