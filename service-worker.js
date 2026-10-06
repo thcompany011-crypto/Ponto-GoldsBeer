@@ -1,88 +1,57 @@
-const cacheName = 'ponto-pro-v6';
+const cacheName = 'ponto-pro-v7';
 
 const assets = [
-
     './',
-
     './index.html',
-
     './login.html',
-
     './dashboard.html',
-
     './css/style.css',
-
+    './css/responsive-golds.css',
     './js/firebase.js',
-
     './js/auth.js',
-
     './js/login.js',
-
     './js/dashboard.js'
-
 ];
 
-
-self.addEventListener('install', (e) => {
-
+self.addEventListener('install', (event) => {
     self.skipWaiting();
-
-    e.waitUntil(
-
-        caches
-            .open(cacheName)
-            .then(cache => cache.addAll(assets))
-
+    event.waitUntil(
+        caches.open(cacheName).then(cache => cache.addAll(assets))
     );
-
 });
 
-
-self.addEventListener('activate', (e) => {
-
-    e.waitUntil(
-
-        caches
-            .keys()
-            .then(chaves =>
-
-                Promise.all(
-
-                    chaves
-
-                        .filter(
-                            chave => chave !== cacheName
-                        )
-
-                        .map(
-                            chave => caches.delete(chave)
-                        )
-
-                )
-
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then(keys =>
+            Promise.all(
+                keys
+                    .filter(key => key !== cacheName)
+                    .map(key => caches.delete(key))
             )
-
+        )
     );
-
     self.clients.claim();
-
 });
 
+self.addEventListener('fetch', (event) => {
+    // Para navegação e arquivos do próprio sistema, tenta a versão online primeiro.
+    // Assim as próximas publicações não ficam presas ao cache antigo.
+    if (event.request.method !== 'GET') return;
 
-self.addEventListener('fetch', (e) => {
+    const url = new URL(event.request.url);
+    const mesmaOrigem = url.origin === self.location.origin;
 
-    e.respondWith(
+    if (!mesmaOrigem) return;
 
-        caches
-            .match(e.request)
-            .then(
-
-                response =>
-                    response ||
-                    fetch(e.request)
-
-            )
-
+    event.respondWith(
+        fetch(event.request)
+            .then(response => {
+                if (response && response.ok) {
+                    const copia = response.clone();
+                    caches.open(cacheName).then(cache => cache.put(event.request, copia));
+                }
+                return response;
+            })
+            .catch(() => caches.match(event.request))
     );
-
 });
