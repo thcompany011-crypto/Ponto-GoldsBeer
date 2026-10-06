@@ -30,6 +30,9 @@ const BAR_LATITUDE = -16.373970;
 const BAR_LONGITUDE = -48.979419;
 const RAIO_PERMITIDO_METROS = 150; // ajuste esse valor se o GPS de dentro do bar variar muito
 const AVISO_JORNADA_MINUTOS = 15;
+// Se o projeto Firebase tiver um Web Push certificate, coloque aqui a chave pública VAPID.
+// Se ficar vazio, o SDK tenta usar a configuração padrão disponível no projeto.
+const FCM_VAPID_KEY = "";
 const DIAS_SEMANA = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 const DIAS_SEMANA_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const NOMES_MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -198,7 +201,7 @@ async function inicializarNotificacoesPush(uid, solicitarPermissao = false) {
 
         if (!messaging) messaging = getMessaging(app);
         const registro = await navigator.serviceWorker.ready;
-        const token = await getToken(messaging, { serviceWorkerRegistration: registro });
+        const opcoesToken = { serviceWorkerRegistration: registro };\n        if (FCM_VAPID_KEY) opcoesToken.vapidKey = FCM_VAPID_KEY;\n        const token = await getToken(messaging, opcoesToken);
         if (!token) return false;
 
         const tokenId = await hashToken(token);
