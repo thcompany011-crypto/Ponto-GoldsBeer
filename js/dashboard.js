@@ -1614,7 +1614,7 @@ function exportarParaPDF() {
     d.linhas.forEach(l=>l.detalheDiario.forEach(item=>{
         const pares=item.pares.length?item.pares:[{entrada:"--:--",saida:"--:--"}];
         pares.forEach((par,index)=>corpo.push([
-            index===0?item.diaSemana+" "+item.data+(item.feriado?" (Feriado)":""),""
+            index===0?item.diaSemana+" "+item.data+(item.feriado?" (Feriado)":""):"",
             par.entrada,par.saida,
             index===0?formatarHorasRelatorio(item.trabalhadoHoras):"",
             index===0?formatarHorasRelatorio(item.cargaDia):"",
