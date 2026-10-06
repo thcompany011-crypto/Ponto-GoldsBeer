@@ -397,3 +397,149 @@
         padding: 18px 20px !important;
     }
 }
+
+
+/* ---------- Jornada do colaborador no painel Admin ---------- */
+
+.jornada-colaborador-card {
+    align-items: stretch !important;
+    padding: 16px !important;
+}
+
+.jornada-colaborador-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.jornada-colaborador-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.jornada-colaborador-identidade {
+    min-width: 0;
+}
+
+.jornada-colaborador-identidade strong {
+    display: block;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.jornada-colaborador-identidade span {
+    display: block;
+    margin-top: 3px;
+    color: #94a3b8;
+    font-size: .78rem;
+}
+
+.jornada-valor-hora {
+    flex: 0 0 auto;
+    padding: 6px 9px;
+    border: 1px solid #38516a;
+    border-radius: 8px;
+    color: #ffb020;
+    background: rgba(255,157,0,.05);
+    font-size: .78rem;
+    white-space: nowrap;
+}
+
+.jornada-colaborador-dias {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.jornada-dia-chip {
+    min-width: 0;
+    padding: 9px 6px;
+    text-align: center;
+    border: 1px solid #263d52;
+    border-radius: 9px;
+    background: rgba(2,6,9,.55);
+}
+
+.jornada-dia-chip span,
+.jornada-dia-chip strong,
+.jornada-dia-chip small {
+    display: block;
+}
+
+.jornada-dia-chip span {
+    color: #94a3b8;
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.jornada-dia-chip strong {
+    margin-top: 3px;
+    color: #f8fafc;
+    font-size: .86rem;
+}
+
+.jornada-dia-chip small {
+    margin-top: 4px;
+    color: #71859b;
+    font-size: .64rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.jornada-dia-ativo {
+    border-color: rgba(255,157,0,.35);
+    background: rgba(255,157,0,.035);
+}
+
+.jornada-dia-ativo strong {
+    color: #ffb020;
+}
+
+.jornada-dia-folga {
+    opacity: .72;
+}
+
+.jornada-aviso {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(245,158,11,.07);
+    border: 1px solid rgba(245,158,11,.22);
+    color: #f59e0b;
+    font-size: .74rem;
+    line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+    .jornada-colaborador-dias {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .jornada-colaborador-topo {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .jornada-valor-hora {
+        white-space: normal;
+    }
+
+    .jornada-colaborador-dias {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .jornada-colaborador-card > .acoes-batida {
+        width: 100%;
+    }
+}
+
+@media (max-width: 380px) {
+    .jornada-colaborador-dias {
+        grid-template-columns: 1fr 1fr;
+    }
+}
