@@ -816,33 +816,58 @@ function renderizarListaColaboradores() {
     );
 
     if (entradasFiltradas.length === 0) {
-        lista.innerHTML = `<li style="justify-content:center; color: var(--text-muted);">Nenhum colaborador encontrado para "${termoBusca}".</li>`;
+        lista.innerHTML = `<li class="jornada-colaborador-vazio">Nenhum colaborador encontrado para "${termoBusca}".</li>`;
         return;
     }
 
     entradasFiltradas.forEach(([uid, perfil]) => {
         const li = document.createElement("li");
-        const jornadaTexto = (perfil.jornadaSemanal || JORNADA_PADRAO)
-            .map((h, i) => `${DIAS_SEMANA_ABREV[i]}:${h}h`)
-            .join(" ");
+        li.className = "jornada-colaborador-card";
+
+        const jornada = perfil.jornadaSemanal || JORNADA_PADRAO;
+        const horarios = Array.isArray(perfil.horariosSemanais) ? perfil.horariosSemanais : [];
+
+        const jornadaHtml = DIAS_SEMANA_ABREV.map((dia, i) => {
+            const carga = Number(jornada[i] || 0);
+            const horario = horarios[i] || {};
+            const entrada = horario.entrada || "";
+            const saida = horario.saida || "";
+            const horarioTexto = entrada || saida ? `${entrada || "--:--"} → ${saida || "--:--"}` : "Horário não definido";
+
+            return `
+                <div class="jornada-dia-chip ${carga > 0 ? "jornada-dia-ativo" : "jornada-dia-folga"}">
+                    <span>${dia}</span>
+                    <strong>${carga > 0 ? formatarTempo(carga) : "Folga"}</strong>
+                    <small>${horarioTexto}</small>
+                </div>
+            `;
+        }).join("");
 
         const info = document.createElement("div");
+        info.className = "jornada-colaborador-info";
         info.innerHTML = `
-            <strong style="color:#fff;">${perfil.nome}</strong>
-            <span style="color:#94a3b8; margin:0 6px;">•</span>
-            <span style="color:${perfil.cargo === 'admin' ? '#f59e0b' : '#94a3b8'};">${perfil.cargo === 'admin' ? 'Admin' : 'Colaborador'}</span>
-            ${perfil.ativo === false ? '<span class="badge badge-negativo" style="margin-left:8px;">Inativo</span>' : ''}
-            <div style="color:#64748b; font-size:0.85em; margin-top:4px;">
-                ${jornadaTexto} &nbsp;•&nbsp; Hora normal: ${formatarMoeda(perfil.valorHoraExtra)}
-                ${!perfil.jornadaSemanal ? ' &nbsp;<span style="color:#f59e0b;">(usando jornada padrão — configure a real)</span>' : ''}
+            <div class="jornada-colaborador-topo">
+                <div class="jornada-colaborador-identidade">
+                    <strong>${perfil.nome}</strong>
+                    <span>${perfil.cargo === "admin" ? "Admin" : "Colaborador"}${perfil.ativo === false ? " • Inativo" : ""}</span>
+                </div>
+                <span class="jornada-valor-hora">Hora normal: ${formatarMoeda(perfil.valorHoraExtra)}</span>
             </div>
+
+            <div class="jornada-colaborador-dias">
+                ${jornadaHtml}
+            </div>
+
+            ${!perfil.jornadaSemanal ? '<div class="jornada-aviso">Jornada padrão sendo usada — configure a jornada real deste colaborador.</div>' : ""}
         `;
 
         const btnGroup = document.createElement("div");
         btnGroup.className = "acoes-batida";
+
         const btnEditar = document.createElement("button");
         btnEditar.className = "btn-acao";
         btnEditar.innerHTML = '<i class="fa-solid fa-pen"></i>';
+        btnEditar.title = "Editar colaborador e jornada";
         btnEditar.onclick = () => abrirModalColaborador(uid);
         btnGroup.appendChild(btnEditar);
 
@@ -851,7 +876,6 @@ function renderizarListaColaboradores() {
         lista.appendChild(li);
     });
 }
-
 function abrirModalColaborador(uid = null) {
     const modal = document.getElementById("modal-colaborador");
     const titulo = document.getElementById("tituloModalColaborador");
