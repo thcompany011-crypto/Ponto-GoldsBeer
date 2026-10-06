@@ -1,5 +1,6 @@
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc, addDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js";
 import { app } from "./firebase.js";
 import { cadastrarColaborador } from "./auth.js";
 
@@ -19,6 +20,8 @@ let feriadosLista = []; // [{id, data, descricao}]
 
 let dadosRelatorioAtual = null; // dados usados para exportar PDF/CSV do último fechamento gerado
 let minhasBatidasCache = []; // últimas batidas do colaborador logado, para popular o modal de solicitação
+let messaging = null;
+let pushInicializado = false;
 
 const JORNADA_PADRAO = [0, 8, 8, 8, 8, 8, 0]; // usada apenas se o colaborador ainda não tiver jornada cadastrada
 
@@ -26,6 +29,7 @@ const JORNADA_PADRAO = [0, 8, 8, 8, 8, 8, 0]; // usada apenas se o colaborador a
 const BAR_LATITUDE = -16.373970;
 const BAR_LONGITUDE = -48.979419;
 const RAIO_PERMITIDO_METROS = 150; // ajuste esse valor se o GPS de dentro do bar variar muito
+const AVISO_JORNADA_MINUTOS = 15;
 const DIAS_SEMANA = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 const DIAS_SEMANA_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const NOMES_MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -169,40 +173,64 @@ async function verificarSeEstaNoBar() {
 }
 
 // ==========================================================
-// Lembretes de ponto (locais — funcionam com o app aberto, sem backend)
+// Notificações da jornada
+// ==========================================================
 // ==========================================================
 
 let intervaloLembretes = null;
-let lembretesDisparados = new Set(); // evita repetir o mesmo aviso várias vezes na mesma sessão
+let lembretesDisparados = new Set();
 
-function tocarBip() {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
-    } catch (error) {
-        // ambiente sem suporte a áudio — ignora silenciosamente
-    }
+async function hashToken(token) {
+    const dados = new TextEncoder().encode(token);
+    const buffer = await crypto.subtle.digest("SHA-256", dados);
+    return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function dispararLembrete(mensagem) {
-    showToast(mensagem, "info");
-    tocarBip();
-    if ("Notification" in window && Notification.permission === "granted") {
-        try {
-            new Notification("Ponto Golds Beer", {
-                body: mensagem,
-                icon: "https://cdn-icons-png.flaticon.com/512/2933/2933158.png"
-            });
-        } catch (error) {
-            console.error("Erro ao mostrar notificação:", error);
+async function inicializarNotificacoesPush(uid, solicitarPermissao = false) {
+    if (!uid || !("Notification" in window) || !("serviceWorker" in navigator)) return false;
+
+    try {
+        if (Notification.permission === "default" && solicitarPermissao) {
+            const permissao = await Notification.requestPermission();
+            if (permissao !== "granted") return false;
         }
+        if (Notification.permission !== "granted") return false;
+
+        if (!messaging) messaging = getMessaging(app);
+        const registro = await navigator.serviceWorker.ready;
+        const token = await getToken(messaging, { serviceWorkerRegistration: registro });
+        if (!token) return false;
+
+        const tokenId = await hashToken(token);
+        await setDoc(doc(db, "usuarios", uid, "pushTokens", tokenId), {
+            token,
+            plataforma: /iphone|ipad|ipod/i.test(navigator.userAgent) ? "ios" : "web",
+            userAgent: navigator.userAgent,
+            atualizadoEm: serverTimestamp()
+        }, { merge: true });
+
+        if (!pushInicializado) {
+            onMessage(messaging, (payload) => {
+                const notification = payload.notification || {};
+                const data = payload.data || {};
+                const titulo = notification.title || data.title || "Gold's Beer";
+                const corpo = notification.body || data.body || "Você tem um aviso da sua jornada.";
+                navigator.serviceWorker.ready.then((reg) => reg.showNotification(titulo, {
+                    body: corpo,
+                    icon: "./logo.png",
+                    badge: "./logo.png",
+                    vibrate: [250, 120, 250],
+                    tag: data.tag || "golds-jornada",
+                    renotify: true,
+                    data: { url: data.url || "./dashboard.html" }
+                }));
+            });
+            pushInicializado = true;
+        }
+        return true;
+    } catch (error) {
+        console.error("Erro ao ativar notificações da jornada:", error);
+        return false;
     }
 }
 
@@ -210,14 +238,38 @@ function atualizarVisibilidadeBotaoLembretes() {
     const btn = document.getElementById("btnAtivarLembretes");
     if (!btn) return;
     if (!("Notification" in window)) { btn.style.display = "none"; return; }
-    btn.style.display = Notification.permission === "default" ? "inline-flex" : "none";
+    if (Notification.permission === "granted") {
+        btn.style.display = "none";
+    } else if (Notification.permission === "denied") {
+        btn.style.display = "inline-flex";
+        btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> Notificações bloqueadas — veja as configurações';
+    } else {
+        btn.style.display = "inline-flex";
+        btn.innerHTML = '<i class="fa-solid fa-bell"></i> Ativar notificações da jornada';
+    }
+}
+
+function dispararLembrete(mensagem) {
+    showToast(mensagem, "info");
+    if ("Notification" in window && Notification.permission === "granted") {
+        navigator.serviceWorker.ready.then((reg) => reg.showNotification("Gold's Beer", {
+            body: mensagem,
+            icon: "./logo.png",
+            badge: "./logo.png",
+            vibrate: [250, 120, 250],
+            tag: "golds-jornada-local",
+            renotify: true,
+            data: { url: "./dashboard.html" }
+        })).catch(() => {});
+    }
 }
 
 function verificarLembretePonto() {
     const banner = document.getElementById("avisoProximoCompromisso");
     if (!banner || !usuarioLogadoUid) return;
 
-    const horariosSemanais = perfisMap[usuarioLogadoUid] && perfisMap[usuarioLogadoUid].horariosSemanais;
+    const perfil = perfisMap[usuarioLogadoUid];
+    const horariosSemanais = perfil && perfil.horariosSemanais;
     if (!Array.isArray(horariosSemanais)) { banner.style.display = "none"; return; }
 
     const agora = new Date();
@@ -240,40 +292,27 @@ function verificarLembretePonto() {
         tipoAlvo = "Saída";
         horarioAlvo = horarioHoje.saida;
     }
+    if (!tipoAlvo || !horarioAlvo) { banner.style.display = "none"; return; }
 
-    banner.style.display = "block";
-
-    if (!tipoAlvo) {
-        banner.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Sem mais pontos previstos por hoje.`;
-        return;
-    }
-
-    const [h, m] = horarioAlvo.split(":").map(Number);
-    const alvo = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), h, m, 0);
-    const diffMin = (alvo - agora) / 60000;
-
-    if (diffMin > 0) {
-        banner.innerHTML = `<i class="fa-solid fa-clock" style="color:#3b82f6;"></i> Sua ${tipoAlvo.toLowerCase()} é às ${horarioAlvo} (em ${Math.ceil(diffMin)} min)`;
+    const [hora, minuto] = horarioAlvo.split(":").map(Number);
+    const alvo = new Date(agora);
+    alvo.setHours(hora, minuto, 0, 0);
+    const diferencaMin = Math.round((alvo - agora) / 60000);
+    if (diferencaMin >= 0 && diferencaMin <= AVISO_JORNADA_MINUTOS) {
+        const chave = agora.toISOString().slice(0, 10) + "-" + tipoAlvo + "-" + horarioAlvo;
+        banner.style.display = "block";
+        banner.innerHTML = '<strong>🔔 ' + tipoAlvo + ' às ' + horarioAlvo + '</strong><span>Faltam aproximadamente ' + diferencaMin + ' min. para o seu horário.</span>';
+        if (diferencaMin === AVISO_JORNADA_MINUTOS && !lembretesDisparados.has(chave)) {
+            lembretesDisparados.add(chave);
+            dispararLembrete('Sua jornada começa em ' + AVISO_JORNADA_MINUTOS + ' minutos. Entrada programada: ' + horarioAlvo + '.');
+        }
     } else {
-        banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Você já deveria ter batido a ${tipoAlvo.toLowerCase()} (${Math.abs(Math.round(diffMin))} min atrás)`;
-    }
-
-    const dataISO = chaveDiaISO(agora);
-    const chave15min = `${dataISO}_${tipoAlvo}_15min`;
-    const chaveAgora = `${dataISO}_${tipoAlvo}_agora`;
-
-    if (diffMin <= 15 && diffMin > 0 && !lembretesDisparados.has(chave15min)) {
-        dispararLembrete(`Faltam ${Math.ceil(diffMin)} minutos para sua ${tipoAlvo.toLowerCase()}!`);
-        lembretesDisparados.add(chave15min);
-    }
-    if (diffMin <= 0 && diffMin > -5 && !lembretesDisparados.has(chaveAgora)) {
-        dispararLembrete(`Hora de bater sua ${tipoAlvo.toLowerCase()}!`);
-        lembretesDisparados.add(chaveAgora);
+        banner.style.display = "none";
     }
 }
 
 function iniciarMonitorDeLembretes() {
-    if (intervaloLembretes) return; // já está rodando, evita duplicar
+    if (intervaloLembretes) clearInterval(intervaloLembretes);
     verificarLembretePonto();
     intervaloLembretes = setInterval(verificarLembretePonto, 30000);
 }
@@ -544,9 +583,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 carregarPainelAdmin();
                 carregarSolicitacoesPendentes();
             }
-            carregarHistorico(usuarioLogadoUid);
+            await carregarHistorico(usuarioLogadoUid);
             carregarMinhasSolicitacoes(usuarioLogadoUid);
             atualizarVisibilidadeBotaoLembretes();
+            if (Notification.permission === "granted") inicializarNotificacoesPush(usuarioLogadoUid, false);
             iniciarMonitorDeLembretes();
         } catch (error) {
             console.error("Erro no auth:", error);
@@ -675,13 +715,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 showToast("Seu navegador não suporta notificações.", "erro");
                 return;
             }
-            const permissao = await Notification.requestPermission();
-            atualizarVisibilidadeBotaoLembretes();
-            if (permissao === "granted") {
-                showToast("Lembretes ativados! Você será avisado perto do seu horário.", "sucesso");
-            } else {
-                showToast("Sem permissão de notificação, mas o aviso na tela continua funcionando.", "info");
+            if (Notification.permission === "denied") {
+                showToast("As notificações estão bloqueadas pelo sistema. Ative-as nas configurações do navegador.", "erro");
+                return;
             }
+            const ativado = await inicializarNotificacoesPush(usuarioLogadoUid, true);
+            atualizarVisibilidadeBotaoLembretes();
+            showToast(ativado ? "Notificações da jornada ativadas!" : "Não foi possível ativar agora. Tente novamente.", ativado ? "sucesso" : "erro");
         });
     }
 
@@ -1289,6 +1329,23 @@ async function carregarHistorico(uid) {
     mostrarListaCarregando(lista);
 
     try {
+        // Sempre busca o perfil atual no Firestore para não cair na jornada padrão
+        // quando o administrador acabou de alterar a jornada do colaborador.
+        const perfilSnapshot = await getDoc(doc(db, "usuarios", uid));
+        if (perfilSnapshot.exists()) {
+            const perfilAtual = perfilSnapshot.data();
+            perfisMap[uid] = {
+                ...(perfisMap[uid] || {}),
+                nome: perfilAtual.nome || perfilAtual.email || "(sem nome)",
+                email: perfilAtual.email || "",
+                cargo: perfilAtual.cargo || perfilAtual.role || "colaborador",
+                jornadaSemanal: Array.isArray(perfilAtual.jornadaSemanal) ? perfilAtual.jornadaSemanal : null,
+                horariosSemanais: Array.isArray(perfilAtual.horariosSemanais) ? perfilAtual.horariosSemanais : null,
+                valorHoraExtra: typeof perfilAtual.valorHoraExtra === "number" ? perfilAtual.valorHoraExtra : 0,
+                ativo: perfilAtual.ativo !== false
+            };
+        }
+
         const q = query(collection(db, "batidas"), where("uid", "==", uid));
         const querySnapshot = await getDocs(q);
         const batidas = [];
@@ -1298,9 +1355,12 @@ async function carregarHistorico(uid) {
         minhasBatidasCache = [...batidas].sort((a, b) => new Date(b.data) - new Date(a.data));
 
         const { jornadas, tempoTotalDiaMs } = processarBatidas(batidas);
-        const jornadaSemanal = getJornadaSemanal(uid);
-        const horariosSemanais = Array.isArray(perfisMap[uid]?.horariosSemanais)
-            ? perfisMap[uid].horariosSemanais
+        const perfilAtual = perfisMap[uid] || {};
+        const jornadaSemanal = Array.isArray(perfilAtual.jornadaSemanal) && perfilAtual.jornadaSemanal.length === 7
+            ? perfilAtual.jornadaSemanal
+            : JORNADA_PADRAO;
+        const horariosSemanais = Array.isArray(perfilAtual.horariosSemanais)
+            ? perfilAtual.horariosSemanais
             : [];
 
         lista.innerHTML = "";
