@@ -515,7 +515,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (ehAdmin) {
                 if (secaoCadastro) secaoCadastro.style.display = "block";
-                if (painelAvancado) painelAvancado.style.display = "block";
+                if (painelAvancado) painelAvancado.style.display = "none";
+                const menuAuditoriaAdmin = document.getElementById("menu-auditoria-admin");
+                if (menuAuditoriaAdmin) menuAuditoriaAdmin.style.display = "block";
                 if (secaoColaboradores) secaoColaboradores.style.display = "block";
                 if (secaoSolicitacoesAdmin) secaoSolicitacoesAdmin.style.display = "block";
 
@@ -551,6 +553,22 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Erro no auth:", error);
         }
     });
+
+    // --- Menu de três pontos da auditoria (admin) ---
+    const btnAbrirAuditoriaAdmin = document.getElementById("btnAbrirAuditoriaAdmin");
+    const painelAuditoriaAdmin = document.getElementById("painel-avancado-admin");
+
+    if (btnAbrirAuditoriaAdmin && painelAuditoriaAdmin) {
+        btnAbrirAuditoriaAdmin.addEventListener("click", () => {
+            const aberto = painelAuditoriaAdmin.style.display !== "none";
+
+            painelAuditoriaAdmin.style.display = aberto ? "none" : "block";
+            btnAbrirAuditoriaAdmin.setAttribute("aria-expanded", String(!aberto));
+            btnAbrirAuditoriaAdmin.title = aberto
+                ? "Abrir histórico e auditoria de ponto"
+                : "Fechar histórico e auditoria de ponto";
+        });
+    }
 
     // --- Registro de ponto (colaborador) ---
     const btnEntrada = document.getElementById("btnEntrada");
