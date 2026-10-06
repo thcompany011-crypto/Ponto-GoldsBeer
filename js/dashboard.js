@@ -515,9 +515,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (ehAdmin) {
                 if (secaoCadastro) secaoCadastro.style.display = "block";
-                if (painelAvancado) painelAvancado.style.display = "none";
-                const menuAuditoriaAdmin = document.getElementById("menu-auditoria-admin");
-                if (menuAuditoriaAdmin) menuAuditoriaAdmin.style.display = "block";
+                // Auditoria e relatórios ficam visíveis diretamente para o administrador.
+                if (painelAvancado) painelAvancado.style.display = "block";
                 if (secaoColaboradores) secaoColaboradores.style.display = "block";
                 if (secaoSolicitacoesAdmin) secaoSolicitacoesAdmin.style.display = "block";
 
@@ -554,22 +553,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- Menu de três pontos da auditoria (admin) ---
-    const btnAbrirAuditoriaAdmin = document.getElementById("btnAbrirAuditoriaAdmin");
-    const painelAuditoriaAdmin = document.getElementById("painel-avancado-admin");
-
-    if (btnAbrirAuditoriaAdmin && painelAuditoriaAdmin) {
-        btnAbrirAuditoriaAdmin.addEventListener("click", () => {
-            const aberto = painelAuditoriaAdmin.style.display !== "none";
-
-            painelAuditoriaAdmin.style.display = aberto ? "none" : "block";
-            btnAbrirAuditoriaAdmin.setAttribute("aria-expanded", String(!aberto));
-            btnAbrirAuditoriaAdmin.title = aberto
-                ? "Abrir histórico e auditoria de ponto"
-                : "Fechar histórico e auditoria de ponto";
-        });
-    }
-
+    // Auditoria e relatórios já ficam abertos automaticamente para administradores.
     // --- Registro de ponto (colaborador) ---
     const btnEntrada = document.getElementById("btnEntrada");
     const btnSaida = document.getElementById("btnSaida");
