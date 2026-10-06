@@ -587,11 +587,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Relatório / Fechamento ---
+    const filtroRelatorioColaborador = document.getElementById("filtroRelatorioColaborador");
+    if (filtroRelatorioColaborador) {
+        filtroRelatorioColaborador.innerHTML = '<option value="">Todos os colaboradores</option>';
+        Object.entries(usuariosMap).forEach(([uid, nome]) => {
+            const opt = document.createElement("option");
+            opt.value = uid;
+            opt.textContent = nome;
+            filtroRelatorioColaborador.appendChild(opt);
+        });
+    }
+
     const btnGerarRelatorio = document.getElementById("btnGerarRelatorio");
     if (btnGerarRelatorio) btnGerarRelatorio.addEventListener("click", () => gerarRelatorio());
 
     const btnExportarPDF = document.getElementById("btnExportarPDF");
     if (btnExportarPDF) btnExportarPDF.addEventListener("click", () => exportarParaPDF());
+
+    const btnExportarImagem = document.getElementById("btnExportarImagem");
+    if (btnExportarImagem) btnExportarImagem.addEventListener("click", () => exportarParaImagem());
 
     const btnExportarCSV = document.getElementById("btnExportarCSV");
     if (btnExportarCSV) btnExportarCSV.addEventListener("click", () => exportarParaCSV());
