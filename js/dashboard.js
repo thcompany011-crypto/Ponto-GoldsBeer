@@ -1551,22 +1551,22 @@ function formatarHorasRelatorio(horas) {
     let h = Math.floor(valor);
     let m = Math.round((valor - h) * 60);
     if (m === 60) { h++; m = 0; }
-    return h === 0 ? \`${sinal}${m}m\` : \`${sinal}${h}h${m ? \` ${m}m\` : ""}\`;
+    return h === 0 ? `${sinal}${m}m` : `${sinal}${h}h${m ? ` ${m}m` : ""}`;
 }
 
 function renderizarRelatorio() {
     const container = document.getElementById("container-relatorio");
     const d = dadosRelatorioAtual;
     const nomeFiltro = d.filtroUid ? (usuariosMap[d.filtroUid] || "Colaborador") : "Todos os colaboradores";
-    let html = \`
+    let html = `
         <div id="relatorio-exportavel" style="background:#071018;color:#f8fafc;padding:24px;border-radius:16px;border:1px solid rgba(255,157,0,.35);">
             <div style="text-align:center;margin-bottom:22px;">
                 <h2 style="margin:0;color:#ffb000;">PONTO GOLDS BEER</h2>
                 <div style="margin-top:5px;color:#cbd5e1;font-weight:700;">ESPELHO DE PONTO / RELATÓRIO DE HORAS</div>
                 <div style="margin-top:8px;color:#94a3b8;">${nomeFiltro} • ${d.inicioStr} a ${d.fimStr}</div>
-            </div>\`;
+            </div>`;
     for (const l of d.linhas) {
-        html += \`<div style="margin-bottom:28px;">
+        html += `<div style="margin-bottom:28px;">
             <h3 style="color:#ffb000;margin-bottom:10px;">${l.nome}</h3>
             <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">
                 <div style="background:#111c26;padding:10px;border-radius:10px;">Dias<br><strong>${l.diasTrabalhados}</strong></div>
@@ -1576,26 +1576,26 @@ function renderizarRelatorio() {
                 <div style="background:#111c26;padding:10px;border-radius:10px;">Pendentes<br><strong>${formatarHorasRelatorio(l.pendente)}</strong></div>
             </div>
             <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid #334155;">Data</th><th>Entrada</th><th>Saída</th><th>Trabalhado</th><th>Carga</th><th>Saldo</th></tr></thead><tbody>\`;
+            <thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid #334155;">Data</th><th>Entrada</th><th>Saída</th><th>Trabalhado</th><th>Carga</th><th>Saldo</th></tr></thead><tbody>`;
         l.detalheDiario.forEach(item => {
-            const saldo = item.excedenteDia > 0 ? \`+${formatarHorasRelatorio(item.excedenteDia)}\` : (item.pendenteDia > 0 ? \`-${formatarHorasRelatorio(item.pendenteDia)}\` : "0m");
+            const saldo = item.excedenteDia > 0 ? `+${formatarHorasRelatorio(item.excedenteDia)}` : (item.pendenteDia > 0 ? `-${formatarHorasRelatorio(item.pendenteDia)}` : "0m");
             const pares = item.pares.length ? item.pares : [{entrada:"--:--",saida:"--:--"}];
             pares.forEach((par,index) => {
-                html += \`<tr>
+                html += `<tr>
                     <td style="padding:8px;border-bottom:1px solid #1e293b;">${index===0 ? item.diaSemana+" "+item.data+(item.feriado?" • FERIADO":"") : ""}</td>
                     <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${par.entrada}</td>
                     <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${par.saida}</td>
                     <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?formatarHorasRelatorio(item.trabalhadoHoras):""}</td>
                     <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?formatarHorasRelatorio(item.cargaDia):""}</td>
                     <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?saldo:""}</td>
-                </tr>\`;
+                </tr>`;
             });
         });
-        html += \`</tbody></table></div><div style="text-align:right;margin-top:10px;color:#cbd5e1;">Hora extra: <strong>${formatarMoeda(l.valorExtra)}</strong></div></div>\`;
+        html += `</tbody></table></div><div style="text-align:right;margin-top:10px;color:#cbd5e1;">Hora extra: <strong>${formatarMoeda(l.valorExtra)}</strong></div></div>`;
     }
-    html += \`<div style="border-top:1px solid #334155;padding-top:15px;margin-top:10px;"><strong style="color:#ffb000;">TOTAL DO RELATÓRIO</strong><br>
+    html += `<div style="border-top:1px solid #334155;padding-top:15px;margin-top:10px;"><strong style="color:#ffb000;">TOTAL DO RELATÓRIO</strong><br>
         Dias trabalhados: ${d.totais.diasTrabalhados} • Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)} • Previstas: ${formatarHorasRelatorio(d.totais.prevista)} • Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)} • Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)} • Valor extra: ${formatarMoeda(d.totais.valorExtra)}
-    </div><div style="display:flex;justify-content:space-between;margin-top:50px;color:#94a3b8;"><span>____________________________<br>Responsável / RH</span><span>____________________________<br>Colaborador (ciente)</span></div></div>\`;
+    </div><div style="display:flex;justify-content:space-between;margin-top:50px;color:#94a3b8;"><span>____________________________<br>Responsável / RH</span><span>____________________________<br>Colaborador (ciente)</span></div></div>`;
     container.innerHTML = html;
 }
 
@@ -1608,8 +1608,8 @@ function exportarParaPDF() {
     docPdf.setFontSize(18);
     docPdf.text("Ponto Golds Beer — Espelho de Ponto",14,16);
     docPdf.setFontSize(10);
-    docPdf.text(\`Colaborador: ${titulo}\`,14,23);
-    docPdf.text(\`Período: ${d.inicioStr} a ${d.fimStr}\`,14,29);
+    docPdf.text(`Colaborador: ${titulo}`,14,23);
+    docPdf.text(`Período: ${d.inicioStr} a ${d.fimStr}`,14,29);
     const corpo=[];
     d.linhas.forEach(l=>l.detalheDiario.forEach(item=>{
         const pares=item.pares.length?item.pares:[{entrada:"--:--",saida:"--:--"}];
@@ -1624,13 +1624,13 @@ function exportarParaPDF() {
     docPdf.autoTable({startY:35,head:[["Data","Entrada","Saída","Trabalhado","Carga","Saldo"]],body:corpo,theme:"striped",headStyles:{fillColor:[180,115,0]},styles:{fontSize:8,cellPadding:3}});
     let y=docPdf.lastAutoTable.finalY+10;
     docPdf.setFontSize(10);
-    docPdf.text(\`Dias trabalhados: ${d.totais.diasTrabalhados}   Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)}   Previstas: ${formatarHorasRelatorio(d.totais.prevista)}   Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)}   Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)}\`,14,y);
-    docPdf.text(\`Valor total de horas extras: ${formatarMoeda(d.totais.valorExtra)}\`,14,y+7);
+    docPdf.text(`Dias trabalhados: ${d.totais.diasTrabalhados}   Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)}   Previstas: ${formatarHorasRelatorio(d.totais.prevista)}   Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)}   Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)}`,14,y);
+    docPdf.text(`Valor total de horas extras: ${formatarMoeda(d.totais.valorExtra)}`,14,y+7);
     docPdf.line(20,y+30,110,y+30); docPdf.text("Responsável / RH",20,y+36);
     docPdf.line(175,y+30,265,y+30); docPdf.text("Colaborador (ciente)",175,y+36);
     const paginas=docPdf.internal.getNumberOfPages();
-    for(let i=1;i<=paginas;i++){docPdf.setPage(i);docPdf.setFontSize(8);docPdf.setTextColor(120);docPdf.text(\`Página ${i} de ${paginas} — Ponto Golds Beer\`,14,200);}
-    docPdf.save(\`Relatorio_${titulo.replace(/\s+/g,"_")}_${d.inicioStr.replace(/\//g,"-")}_a_${d.fimStr.replace(/\//g,"-")}.pdf\`);
+    for(let i=1;i<=paginas;i++){docPdf.setPage(i);docPdf.setFontSize(8);docPdf.setTextColor(120);docPdf.text(`Página ${i} de ${paginas} — Ponto Golds Beer`,14,200);}
+    docPdf.save(`Relatorio_${titulo.replace(/\s+/g,"_")}_${d.inicioStr.replace(/\//g,"-")}_a_${d.fimStr.replace(/\//g,"-")}.pdf`);
 }
 
 async function exportarParaImagem() {
@@ -1641,7 +1641,7 @@ async function exportarParaImagem() {
         const canvas=await html2canvas(alvo,{scale:2,useCORS:true,backgroundColor:"#071018"});
         const link=document.createElement("a");
         const nome=dadosRelatorioAtual.filtroUid?(usuariosMap[dadosRelatorioAtual.filtroUid]||"Colaborador"):"Todos";
-        link.download=\`Relatorio_${nome.replace(/\s+/g,"_")}_${dadosRelatorioAtual.inicioStr.replace(/\//g,"-")}_a_${dadosRelatorioAtual.fimStr.replace(/\//g,"-")}.png\`;
+        link.download=`Relatorio_${nome.replace(/\s+/g,"_")}_${dadosRelatorioAtual.inicioStr.replace(/\//g,"-")}_a_${dadosRelatorioAtual.fimStr.replace(/\//g,"-")}.png`;
         link.href=canvas.toDataURL("image/png");
         link.click();
     } catch(e) { console.error(e); showToast("Erro ao gerar a imagem.","erro"); }
