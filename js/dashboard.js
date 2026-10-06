@@ -1434,252 +1434,204 @@ async function gerarRelatorio() {
     const container = document.getElementById("container-relatorio");
     const inputInicio = document.getElementById("dataInicioRelatorio").value;
     const inputFim = document.getElementById("dataFimRelatorio").value;
+    const filtroUid = document.getElementById("filtroRelatorioColaborador")?.value || "";
     if (!inputInicio || !inputFim) return showToast("Selecione as datas.", "erro");
-
     const inicio = new Date(inputInicio + "T00:00:00");
     const fim = new Date(inputFim + "T23:59:59");
     if (inicio > fim) return showToast("A data de início precisa ser antes da data de fim.", "erro");
+    container.innerHTML = '<div class="lista-carregando"><div class="spinner"></div> Calculando relatório...</div>';
 
-    container.innerHTML = `<div class="lista-carregando"><div class="spinner"></div> Calculando fechamento...</div>`;
+    try {
+        const limiteTolerancia = new Date(fim.getTime() + (14 * 60 * 60 * 1000));
+        const querySnapshot = await getDocs(collection(db, "batidas"));
+        const batidasPorUsuario = {};
+        Object.keys(usuariosMap).forEach(uid => { if (!filtroUid || uid === filtroUid) batidasPorUsuario[uid] = []; });
 
-    // Tolerância para turnos que atravessam a virada do período (ex: entrada 23h50 do último dia)
-    const limiteTolerancia = new Date(fim.getTime() + (14 * 60 * 60 * 1000));
-
-    const querySnapshot = await getDocs(collection(db, "batidas"));
-    const batidasPorUsuario = {};
-    Object.keys(usuariosMap).forEach(uid => batidasPorUsuario[uid] = []);
-
-    querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const dataPonto = new Date(data.data);
-        if (dataPonto >= inicio && dataPonto <= limiteTolerancia) {
-            if (batidasPorUsuario[data.uid]) batidasPorUsuario[data.uid].push(data);
-        }
-    });
-
-    dadosRelatorioAtual = {
-        inicioStr: inicio.toLocaleDateString('pt-BR'),
-        fimStr: fim.toLocaleDateString('pt-BR'),
-        linhas: [],
-        totais: { trabalhadas: 0, prevista: 0, excedenteHoras: 0, valorExtra: 0, pendenteHoras: 0 }
-    };
-
-    for (const uid in batidasPorUsuario) {
-        const jornadaSemanal = getJornadaSemanal(uid);
-        const valorHora = getValorHoraExtra(uid);
-        const { tempoTotalDiaMs } = processarBatidas(batidasPorUsuario[uid]);
-
-        let totalTrabalhadoHoras = 0;
-        let totalPrevistoHoras = 0;
-        let totalExcedenteHoras = 0;
-        let totalPendenteHoras = 0;
-        let totalValorExtra = 0;
-        const detalheDiario = [];
-
-        const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
-        const fimLoop = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
-        while (cursor <= fimLoop) {
-            const chaveDia = cursor.toLocaleDateString('pt-BR');
-            const diaSemana = cursor.getDay();
-            const feriado = ehFeriado(cursor);
-            const cargaDia = feriado ? 0 : jornadaSemanal[diaSemana];
-            const trabalhadoHoras = (tempoTotalDiaMs[chaveDia] || 0) / 3600000;
-
-            let excedenteDia = 0;
-            let pendenteDia = 0;
-            let valorExtraDia = 0;
-
-            if (trabalhadoHoras > cargaDia) {
-                excedenteDia = trabalhadoHoras - cargaDia;
-                // Valor fixo por hora extra (contrato informal, sem adicional CLT de 50%/100%)
-                valorExtraDia = excedenteDia * valorHora;
-            } else if (trabalhadoHoras < cargaDia) {
-                pendenteDia = cargaDia - trabalhadoHoras;
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const dataPonto = new Date(data.data);
+            if (dataPonto >= inicio && dataPonto <= limiteTolerancia && batidasPorUsuario[data.uid]) {
+                batidasPorUsuario[data.uid].push({ ...data, id: docSnap.id });
             }
-
-            totalTrabalhadoHoras += trabalhadoHoras;
-            totalPrevistoHoras += cargaDia;
-            totalExcedenteHoras += excedenteDia;
-            totalPendenteHoras += pendenteDia;
-            totalValorExtra += valorExtraDia;
-
-            if (trabalhadoHoras > 0 || cargaDia > 0) {
-                detalheDiario.push({
-                    data: chaveDia,
-                    diaSemana: DIAS_SEMANA_ABREV[diaSemana],
-                    feriado,
-                    trabalhadoHoras,
-                    cargaDia,
-                    excedenteDia,
-                    pendenteDia,
-                    valorExtraDia
-                });
-            }
-
-            cursor.setDate(cursor.getDate() + 1);
-        }
-
-        dadosRelatorioAtual.linhas.push({
-            uid,
-            nome: usuariosMap[uid],
-            trabalhadas: totalTrabalhadoHoras,
-            prevista: totalPrevistoHoras,
-            excedente: totalExcedenteHoras,
-            pendente: totalPendenteHoras,
-            valorExtra: totalValorExtra,
-            detalheDiario
         });
 
-        dadosRelatorioAtual.totais.trabalhadas += totalTrabalhadoHoras;
-        dadosRelatorioAtual.totais.prevista += totalPrevistoHoras;
-        dadosRelatorioAtual.totais.excedenteHoras += totalExcedenteHoras;
-        dadosRelatorioAtual.totais.valorExtra += totalValorExtra;
-        dadosRelatorioAtual.totais.pendenteHoras += totalPendenteHoras;
+        dadosRelatorioAtual = {
+            inicioStr: inicio.toLocaleDateString("pt-BR"),
+            fimStr: fim.toLocaleDateString("pt-BR"),
+            filtroUid,
+            linhas: [],
+            totais: { trabalhadas: 0, prevista: 0, excedenteHoras: 0, valorExtra: 0, pendenteHoras: 0, diasTrabalhados: 0 }
+        };
+
+        for (const uid in batidasPorUsuario) {
+            const jornadaSemanal = getJornadaSemanal(uid);
+            const valorHora = getValorHoraExtra(uid);
+            const processado = processarBatidas(batidasPorUsuario[uid]);
+            const tempoTotalDiaMs = processado.tempoTotalDiaMs;
+            let totalTrabalhadoHoras = 0, totalPrevistoHoras = 0, totalExcedenteHoras = 0, totalPendenteHoras = 0, totalValorExtra = 0, diasTrabalhados = 0;
+            const detalheDiario = [];
+            const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+            const fimLoop = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
+
+            while (cursor <= fimLoop) {
+                const chaveDia = cursor.toLocaleDateString("pt-BR");
+                const diaSemana = cursor.getDay();
+                const feriado = ehFeriado(cursor);
+                const cargaDia = feriado ? 0 : Number(jornadaSemanal[diaSemana] || 0);
+                const trabalhadoHoras = (tempoTotalDiaMs[chaveDia] || 0) / 3600000;
+                let excedenteDia = 0, pendenteDia = 0, valorExtraDia = 0;
+                if (trabalhadoHoras > cargaDia) {
+                    excedenteDia = trabalhadoHoras - cargaDia;
+                    valorExtraDia = excedenteDia * valorHora;
+                } else if (trabalhadoHoras < cargaDia) {
+                    pendenteDia = cargaDia - trabalhadoHoras;
+                }
+                if (trabalhadoHoras > 0) diasTrabalhados++;
+                totalTrabalhadoHoras += trabalhadoHoras;
+                totalPrevistoHoras += cargaDia;
+                totalExcedenteHoras += excedenteDia;
+                totalPendenteHoras += pendenteDia;
+                totalValorExtra += valorExtraDia;
+
+                if (trabalhadoHoras > 0 || cargaDia > 0) {
+                    const jornadasDoDia = processado.jornadas.filter(j => new Date(j.dataReferencia).toLocaleDateString("pt-BR") === chaveDia);
+                    const pares = jornadasDoDia.map(j => ({
+                        entrada: j.entrada?.data ? new Date(j.entrada.data).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) : "--:--",
+                        saida: j.saida?.data ? new Date(j.saida.data).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) : "--:--"
+                    }));
+                    detalheDiario.push({data:chaveDia,diaSemana:DIAS_SEMANA_ABREV[diaSemana],feriado,trabalhadoHoras,cargaDia,excedenteDia,pendenteDia,valorExtraDia,pares});
+                }
+                cursor.setDate(cursor.getDate() + 1);
+            }
+
+            const nome = usuariosMap[uid] || "Colaborador";
+            dadosRelatorioAtual.linhas.push({uid,nome,trabalhadas:totalTrabalhadoHoras,prevista:totalPrevistoHoras,excedente:totalExcedenteHoras,pendente:totalPendenteHoras,valorExtra:totalValorExtra,diasTrabalhados,detalheDiario});
+            dadosRelatorioAtual.totais.trabalhadas += totalTrabalhadoHoras;
+            dadosRelatorioAtual.totais.prevista += totalPrevistoHoras;
+            dadosRelatorioAtual.totais.excedenteHoras += totalExcedenteHoras;
+            dadosRelatorioAtual.totais.pendenteHoras += totalPendenteHoras;
+            dadosRelatorioAtual.totais.valorExtra += totalValorExtra;
+            dadosRelatorioAtual.totais.diasTrabalhados += diasTrabalhados;
+        }
+
+        if (!dadosRelatorioAtual.linhas.length) {
+            container.innerHTML = '<p style="color:var(--text-muted);">Nenhum colaborador encontrado para os filtros selecionados.</p>';
+            return;
+        }
+
+        renderizarRelatorio();
+        document.getElementById("btnExportarPDF").style.display = "inline-flex";
+        document.getElementById("btnExportarCSV").style.display = "inline-flex";
+        const btnImagem = document.getElementById("btnExportarImagem");
+        if (btnImagem) btnImagem.style.display = "inline-flex";
+    } catch (erro) {
+        console.error("Erro ao gerar relatório:", erro);
+        container.innerHTML = '<p style="color:var(--danger-color);">Não foi possível gerar o relatório.</p>';
+        showToast("Erro ao gerar relatório.", "erro");
     }
-
-    renderizarRelatorioNaTela(container);
-
-    const btnExportarPDF = document.getElementById("btnExportarPDF");
-    if (btnExportarPDF) btnExportarPDF.style.display = "inline-block";
-    const btnExportarCSV = document.getElementById("btnExportarCSV");
-    if (btnExportarCSV) btnExportarCSV.style.display = "inline-block";
 }
 
-function renderizarRelatorioNaTela(container) {
+function formatarHorasRelatorio(horas) {
+    const sinal = horas < 0 ? "-" : "";
+    const valor = Math.abs(horas);
+    let h = Math.floor(valor);
+    let m = Math.round((valor - h) * 60);
+    if (m === 60) { h++; m = 0; }
+    return h === 0 ? \`${sinal}${m}m\` : \`${sinal}${h}h${m ? \` ${m}m\` : ""}\`;
+}
+
+function renderizarRelatorio() {
+    const container = document.getElementById("container-relatorio");
     const d = dadosRelatorioAtual;
-    let html = `<div style="margin-bottom: 15px; color: var(--text-muted);">Fechamento de: <strong>${d.inicioStr}</strong> a <strong>${d.fimStr}</strong></div>`;
-    html += `<div class="table-wrapper"><table>
-        <tr><th>Colaborador</th><th>Trabalhadas</th><th>Prevista</th><th>Pendente</th><th>Hora Extra</th><th>A Receber</th></tr>`;
-
-    d.linhas.forEach((linha) => {
-        html += `<tr>
-            <td style="color:#fff;">${linha.nome}</td>
-            <td><strong style="color:var(--accent-color);">${linha.trabalhadas.toFixed(2)}h</strong></td>
-            <td style="color:var(--text-muted);">${linha.prevista.toFixed(2)}h</td>
-            <td>${linha.pendente > 0 ? `<span class="badge badge-negativo">${linha.pendente.toFixed(2)}h</span>` : '-'}</td>
-            <td>${linha.excedente > 0 ? `<span class="badge badge-positivo">${linha.excedente.toFixed(2)}h</span>` : '-'}</td>
-            <td style="color:#fff; font-weight:600;">${linha.valorExtra > 0 ? formatarMoeda(linha.valorExtra) : '-'}</td>
-        </tr>`;
-    });
-
-    html += `<tr style="background:#0f172a; font-weight:700;">
-        <td style="color:#fff;">TOTAL GERAL</td>
-        <td style="color:var(--accent-color);">${d.totais.trabalhadas.toFixed(2)}h</td>
-        <td style="color:var(--text-muted);">${d.totais.prevista.toFixed(2)}h</td>
-        <td style="color:#ef4444;">${d.totais.pendenteHoras.toFixed(2)}h</td>
-        <td style="color:#10b981;">${d.totais.excedenteHoras.toFixed(2)}h</td>
-        <td style="color:#fff;">${formatarMoeda(d.totais.valorExtra)}</td>
-    </tr>`;
-    html += `</table></div>`;
-    html += `<div style="color:var(--text-muted); font-size:0.85em; margin-top:10px;">
-        Hora extra calculada a valor fixo (definido por colaborador), igual em qualquer dia.
-    </div>`;
+    const nomeFiltro = d.filtroUid ? (usuariosMap[d.filtroUid] || "Colaborador") : "Todos os colaboradores";
+    let html = \`
+        <div id="relatorio-exportavel" style="background:#071018;color:#f8fafc;padding:24px;border-radius:16px;border:1px solid rgba(255,157,0,.35);">
+            <div style="text-align:center;margin-bottom:22px;">
+                <h2 style="margin:0;color:#ffb000;">PONTO GOLDS BEER</h2>
+                <div style="margin-top:5px;color:#cbd5e1;font-weight:700;">ESPELHO DE PONTO / RELATÓRIO DE HORAS</div>
+                <div style="margin-top:8px;color:#94a3b8;">${nomeFiltro} • ${d.inicioStr} a ${d.fimStr}</div>
+            </div>\`;
+    for (const l of d.linhas) {
+        html += \`<div style="margin-bottom:28px;">
+            <h3 style="color:#ffb000;margin-bottom:10px;">${l.nome}</h3>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">
+                <div style="background:#111c26;padding:10px;border-radius:10px;">Dias<br><strong>${l.diasTrabalhados}</strong></div>
+                <div style="background:#111c26;padding:10px;border-radius:10px;">Trabalhadas<br><strong>${formatarHorasRelatorio(l.trabalhadas)}</strong></div>
+                <div style="background:#111c26;padding:10px;border-radius:10px;">Previstas<br><strong>${formatarHorasRelatorio(l.prevista)}</strong></div>
+                <div style="background:#111c26;padding:10px;border-radius:10px;">Extras<br><strong>${formatarHorasRelatorio(l.excedente)}</strong></div>
+                <div style="background:#111c26;padding:10px;border-radius:10px;">Pendentes<br><strong>${formatarHorasRelatorio(l.pendente)}</strong></div>
+            </div>
+            <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid #334155;">Data</th><th>Entrada</th><th>Saída</th><th>Trabalhado</th><th>Carga</th><th>Saldo</th></tr></thead><tbody>\`;
+        l.detalheDiario.forEach(item => {
+            const saldo = item.excedenteDia > 0 ? \`+${formatarHorasRelatorio(item.excedenteDia)}\` : (item.pendenteDia > 0 ? \`-${formatarHorasRelatorio(item.pendenteDia)}\` : "0m");
+            const pares = item.pares.length ? item.pares : [{entrada:"--:--",saida:"--:--"}];
+            pares.forEach((par,index) => {
+                html += \`<tr>
+                    <td style="padding:8px;border-bottom:1px solid #1e293b;">${index===0 ? item.diaSemana+" "+item.data+(item.feriado?" • FERIADO":"") : ""}</td>
+                    <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${par.entrada}</td>
+                    <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${par.saida}</td>
+                    <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?formatarHorasRelatorio(item.trabalhadoHoras):""}</td>
+                    <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?formatarHorasRelatorio(item.cargaDia):""}</td>
+                    <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?saldo:""}</td>
+                </tr>\`;
+            });
+        });
+        html += \`</tbody></table></div><div style="text-align:right;margin-top:10px;color:#cbd5e1;">Hora extra: <strong>${formatarMoeda(l.valorExtra)}</strong></div></div>\`;
+    }
+    html += \`<div style="border-top:1px solid #334155;padding-top:15px;margin-top:10px;"><strong style="color:#ffb000;">TOTAL DO RELATÓRIO</strong><br>
+        Dias trabalhados: ${d.totais.diasTrabalhados} • Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)} • Previstas: ${formatarHorasRelatorio(d.totais.prevista)} • Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)} • Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)} • Valor extra: ${formatarMoeda(d.totais.valorExtra)}
+    </div><div style="display:flex;justify-content:space-between;margin-top:50px;color:#94a3b8;"><span>____________________________<br>Responsável / RH</span><span>____________________________<br>Colaborador (ciente)</span></div></div>\`;
     container.innerHTML = html;
 }
 
-// ==========================================================
-// Exportação PDF
-// ==========================================================
-
 function exportarParaPDF() {
     if (!dadosRelatorioAtual) return showToast("Gere o relatório primeiro.", "erro");
-
     const { jsPDF } = window.jspdf;
-    const docPdf = new jsPDF();
+    const docPdf = new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
     const d = dadosRelatorioAtual;
-
-    const adicionarRodape = () => {
-        const paginas = docPdf.internal.getNumberOfPages();
-        for (let i = 1; i <= paginas; i++) {
-            docPdf.setPage(i);
-            docPdf.setFontSize(8);
-            docPdf.setTextColor(150);
-            docPdf.text(`Página ${i} de ${paginas} — Documento gerado automaticamente pelo Ponto Golds Beer`, 14, 290);
-        }
-    };
-
-    docPdf.setFontSize(16);
-    docPdf.text(`Ponto Golds Beer — Fechamento Financeiro`, 14, 20);
-    docPdf.setFontSize(11);
-    docPdf.text(`Período de Apuração: ${d.inicioStr} a ${d.fimStr}`, 14, 28);
-    docPdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 34);
-
-    const cabecalho = [["Colaborador", "Trabalhadas", "Prevista", "Pendente", "Extra (h)", "A Receber"]];
-    const corpoTabela = d.linhas.map(l => [
-        l.nome,
-        `${l.trabalhadas.toFixed(2)}h`,
-        `${l.prevista.toFixed(2)}h`,
-        l.pendente > 0 ? `${l.pendente.toFixed(2)}h` : '-',
-        l.excedente > 0 ? `${l.excedente.toFixed(2)}h` : '-',
-        l.valorExtra > 0 ? formatarMoeda(l.valorExtra) : '-'
-    ]);
-    corpoTabela.push([
-        "TOTAL GERAL",
-        `${d.totais.trabalhadas.toFixed(2)}h`,
-        `${d.totais.prevista.toFixed(2)}h`,
-        `${d.totais.pendenteHoras.toFixed(2)}h`,
-        `${d.totais.excedenteHoras.toFixed(2)}h`,
-        formatarMoeda(d.totais.valorExtra)
-    ]);
-
-    docPdf.autoTable({
-        startY: 42,
-        head: cabecalho,
-        body: corpoTabela,
-        theme: 'striped',
-        headStyles: { fillColor: [59, 130, 246] },
-        styles: { fontSize: 9, cellPadding: 4 },
-        didParseCell: (dataCell) => {
-            if (dataCell.row.index === corpoTabela.length - 1) {
-                dataCell.cell.styles.fontStyle = 'bold';
-                dataCell.cell.styles.fillColor = [230, 230, 230];
-            }
-        }
-    });
-
-    // Detalhamento diário por colaborador (apêndice)
-    d.linhas.forEach((linha) => {
-        if (!linha.detalheDiario.length) return;
-        docPdf.addPage();
-        docPdf.setFontSize(13);
-        docPdf.text(`Detalhamento diário — ${linha.nome}`, 14, 18);
-
-        const corpoDetalhe = linha.detalheDiario.map(item => [
-            `${item.diaSemana} ${item.data}${item.feriado ? ' (Feriado)' : ''}`,
-            `${item.trabalhadoHoras.toFixed(2)}h`,
-            `${item.cargaDia.toFixed(2)}h`,
-            item.excedenteDia > 0 ? `+${item.excedenteDia.toFixed(2)}h` : (item.pendenteDia > 0 ? `-${item.pendenteDia.toFixed(2)}h` : '-'),
-            item.valorExtraDia > 0 ? formatarMoeda(item.valorExtraDia) : '-'
-        ]);
-
-        docPdf.autoTable({
-            startY: 24,
-            head: [["Dia", "Trabalhado", "Previsto", "Saldo", "Extra"]],
-            body: corpoDetalhe,
-            theme: 'striped',
-            headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 8, cellPadding: 3 }
-        });
-    });
-
-    // Área de assinatura
-    docPdf.addPage();
-    docPdf.setFontSize(11);
-    docPdf.text("Assinaturas", 14, 20);
-    docPdf.line(14, 60, 100, 60);
-    docPdf.text("Responsável / RH", 14, 66);
-    docPdf.line(120, 60, 196, 60);
-    docPdf.text("Colaborador (ciente)", 120, 66);
-
-    adicionarRodape();
-
-    const nomeArquivo = `Fechamento_${d.inicioStr.replace(/\//g, '-')}_a_${d.fimStr.replace(/\//g, '-')}.pdf`;
-    docPdf.save(nomeArquivo);
+    const titulo = d.filtroUid ? (usuariosMap[d.filtroUid] || "Colaborador") : "Todos os colaboradores";
+    docPdf.setFontSize(18);
+    docPdf.text("Ponto Golds Beer — Espelho de Ponto",14,16);
+    docPdf.setFontSize(10);
+    docPdf.text(\`Colaborador: ${titulo}\`,14,23);
+    docPdf.text(\`Período: ${d.inicioStr} a ${d.fimStr}\`,14,29);
+    const corpo=[];
+    d.linhas.forEach(l=>l.detalheDiario.forEach(item=>{
+        const pares=item.pares.length?item.pares:[{entrada:"--:--",saida:"--:--"}];
+        pares.forEach((par,index)=>corpo.push([
+            index===0?${item.diaSemana+" "+item.data+(item.feriado?" (Feriado)":"")}:"",
+            par.entrada,par.saida,
+            index===0?formatarHorasRelatorio(item.trabalhadoHoras):"",
+            index===0?formatarHorasRelatorio(item.cargaDia):"",
+            index===0?(item.excedenteDia>0?"+"+formatarHorasRelatorio(item.excedenteDia):item.pendenteDia>0?"-"+formatarHorasRelatorio(item.pendenteDia):"0m"):""
+        ]));
+    }));
+    docPdf.autoTable({startY:35,head:[["Data","Entrada","Saída","Trabalhado","Carga","Saldo"]],body:corpo,theme:"striped",headStyles:{fillColor:[180,115,0]},styles:{fontSize:8,cellPadding:3}});
+    let y=docPdf.lastAutoTable.finalY+10;
+    docPdf.setFontSize(10);
+    docPdf.text(\`Dias trabalhados: ${d.totais.diasTrabalhados}   Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)}   Previstas: ${formatarHorasRelatorio(d.totais.prevista)}   Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)}   Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)}\`,14,y);
+    docPdf.text(\`Valor total de horas extras: ${formatarMoeda(d.totais.valorExtra)}\`,14,y+7);
+    docPdf.line(20,y+30,110,y+30); docPdf.text("Responsável / RH",20,y+36);
+    docPdf.line(175,y+30,265,y+30); docPdf.text("Colaborador (ciente)",175,y+36);
+    const paginas=docPdf.internal.getNumberOfPages();
+    for(let i=1;i<=paginas;i++){docPdf.setPage(i);docPdf.setFontSize(8);docPdf.setTextColor(120);docPdf.text(\`Página ${i} de ${paginas} — Ponto Golds Beer\`,14,200);}
+    docPdf.save(\`Relatorio_${titulo.replace(/\s+/g,"_")}_${d.inicioStr.replace(/\//g,"-")}_a_${d.fimStr.replace(/\//g,"-")}.pdf\`);
 }
 
-// ==========================================================
-// Exportação CSV
-// ==========================================================
+async function exportarParaImagem() {
+    if (!dadosRelatorioAtual) return showToast("Gere o relatório primeiro.", "erro");
+    const alvo=document.getElementById("relatorio-exportavel");
+    if (!alvo || typeof html2canvas==="undefined") return showToast("Não foi possível preparar a imagem.", "erro");
+    try {
+        const canvas=await html2canvas(alvo,{scale:2,useCORS:true,backgroundColor:"#071018"});
+        const link=document.createElement("a");
+        const nome=dadosRelatorioAtual.filtroUid?(usuariosMap[dadosRelatorioAtual.filtroUid]||"Colaborador"):"Todos";
+        link.download=\`Relatorio_${nome.replace(/\s+/g,"_")}_${dadosRelatorioAtual.inicioStr.replace(/\//g,"-")}_a_${dadosRelatorioAtual.fimStr.replace(/\//g,"-")}.png\`;
+        link.href=canvas.toDataURL("image/png");
+        link.click();
+    } catch(e) { console.error(e); showToast("Erro ao gerar a imagem.","erro"); }
+}
 
 function exportarParaCSV() {
     if (!dadosRelatorioAtual) return showToast("Gere o relatório primeiro.", "erro");
