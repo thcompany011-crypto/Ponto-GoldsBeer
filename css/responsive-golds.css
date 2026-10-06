@@ -543,3 +543,8 @@
         grid-template-columns: 1fr 1fr;
     }
 }
+
+
+/* Instalação guiada no iPhone */
+.ios-instalar-passo{display:block;margin:7px 0;line-height:1.45;}
+.dashboard-aviso-ios small{display:block;color:#94a3b8;line-height:1.45;}
