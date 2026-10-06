@@ -18,6 +18,15 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /usuarios/{userId}/pushTokens/{tokenId} {
+      allow read: if isDono(userId) || isAdmin();
+      allow create, update, delete: if isDono(userId);
+    }
+
+    match /notificacoesJornada/{notificacaoId} {
+      allow read, write: if false;
+    }
+
     match /batidas/{batidaId} {
       allow read: if request.auth != null && (request.auth.uid == resource.data.uid || isAdmin());
 
