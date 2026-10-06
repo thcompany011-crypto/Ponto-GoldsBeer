@@ -801,112 +801,58 @@
 
             <h3>
 
-                <i
-                    class="fa-solid fa-file-invoice-dollar"
-                    style="color:var(--gold-orange);"
-                ></i>
+                <i class="fa-solid fa-file-invoice-dollar" style="color:var(--gold-orange);"></i>
 
-                Relatório Financeiro / Fechamento
+                Relatório de Horas / Fechamento
 
             </h3>
 
+            <div style="display:grid;grid-template-columns:minmax(220px,1.5fr) repeat(2,minmax(160px,1fr));gap:15px;align-items:end;margin-bottom:15px;">
 
-            <div
-                style="
-                    display:flex;
-                    gap:15px;
-                    align-items:end;
-                    margin-bottom:20px;
-                    flex-wrap:wrap;
-                "
-            >
-
-                <div
-                    class="form-group"
-                    style="margin-bottom:0;"
-                >
-
-                    <label>
-                        Data Início:
-                    </label>
-
-                    <input
-                        type="date"
-                        id="dataInicioRelatorio"
-                        class="form-control"
-                    >
-
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Colaborador:</label>
+                    <select id="filtroRelatorioColaborador" class="form-control">
+                        <option value="">Todos os colaboradores</option>
+                    </select>
                 </div>
 
-
-                <div
-                    class="form-group"
-                    style="margin-bottom:0;"
-                >
-
-                    <label>
-                        Data Fim:
-                    </label>
-
-                    <input
-                        type="date"
-                        id="dataFimRelatorio"
-                        class="form-control"
-                    >
-
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Data Início:</label>
+                    <input type="date" id="dataInicioRelatorio" class="form-control">
                 </div>
 
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Data Fim:</label>
+                    <input type="date" id="dataFimRelatorio" class="form-control">
+                </div>
 
-                <button
-                    id="btnGerarRelatorio"
-                    class="btn-primary"
-                    style="height:42px;"
-                >
+            </div>
 
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+
+                <button id="btnGerarRelatorio" class="btn-primary" style="height:42px;">
                     <i class="fa-solid fa-file-export"></i>
-
-                    Gerar Fechamento
-
+                    Gerar Relatório
                 </button>
 
-
-                <button
-                    id="btnExportarPDF"
-                    class="btn-primary"
-                    style="
-                        height:42px;
-                        display:none;
-                        background-color:var(--success-color);
-                    "
-                >
-
+                <button id="btnExportarPDF" class="btn-primary" style="height:42px;display:none;background:#dc2626;color:#fff;">
                     <i class="fa-solid fa-file-pdf"></i>
-
                     Baixar PDF
-
                 </button>
 
+                <button id="btnExportarImagem" class="btn-primary" style="height:42px;display:none;background:#059669;color:#fff;">
+                    <i class="fa-solid fa-image"></i>
+                    Baixar Imagem
+                </button>
 
-                <button
-                    id="btnExportarCSV"
-                    class="btn-primary"
-                    style="
-                        height:42px;
-                        display:none;
-                        background-color:#64748b;
-                    "
-                >
-
+                <button id="btnExportarCSV" class="btn-primary" style="height:42px;display:none;background:#64748b;color:#fff;">
                     <i class="fa-solid fa-file-csv"></i>
-
                     Baixar CSV
-
                 </button>
 
             </div>
 
-
-            <div id="container-relatorio"></div>
+            <div id="container-relatorio" class="container-relatorio"></div>
 
         </div>
 
@@ -1761,6 +1707,8 @@
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"
     ></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 
     <!-- =====================================================
