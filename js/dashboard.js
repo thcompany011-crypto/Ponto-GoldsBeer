@@ -1388,6 +1388,13 @@ function renderizarPainelAdmin() {
 
     const filtroColaborador = document.getElementById("filtroAuditoriaColaborador")?.value || "";
     const filtroInicio = document.getElementById("filtroAuditoriaInicio")?.value || "";
+
+    // Não exibe os pontos automaticamente. O histórico só aparece
+    // depois que um colaborador for selecionado no filtro.
+    if (!filtroColaborador) {
+        listaGeral.innerHTML = "";
+        return;
+    }
     const filtroFim = document.getElementById("filtroAuditoriaFim")?.value || "";
 
     let jornadasFiltradas = jornadasAdminCache;
