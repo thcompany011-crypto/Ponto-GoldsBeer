@@ -586,10 +586,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnToggleHistorico = document.getElementById("btnToggleHistorico");
     const historicoDiario = document.getElementById("historico-diario");
     if (btnToggleHistorico && historicoDiario) {
-        btnToggleHistorico.addEventListener("click", () => {
+        btnToggleHistorico.addEventListener("click", async () => {
             const abrir = historicoDiario.style.display === "none";
-            historicoDiario.style.display = abrir ? "block" : "none";
-            if (abrir) historicoDiario.scrollIntoView({ behavior: 'smooth' });
+
+            if (abrir) {
+                // Sempre atualiza ao abrir: o colaborador vê os pontos que já existem
+                // sem precisar bater uma nova entrada/saída.
+                await carregarHistorico(usuarioLogadoUid);
+                historicoDiario.style.display = "block";
+                historicoDiario.scrollIntoView({ behavior: "smooth", block: "start" });
+            } else {
+                historicoDiario.style.display = "none";
+            }
         });
     }
 
@@ -1256,69 +1264,156 @@ async function carregarHistorico(uid) {
     if (!lista) return;
     mostrarListaCarregando(lista);
 
-    const q = query(collection(db, "batidas"), where("uid", "==", uid));
-    const querySnapshot = await getDocs(q);
-    const batidas = [];
-    querySnapshot.forEach((docSnap) => batidas.push({ id: docSnap.id, ...docSnap.data() }));
+    try {
+        const q = query(collection(db, "batidas"), where("uid", "==", uid));
+        const querySnapshot = await getDocs(q);
+        const batidas = [];
+        querySnapshot.forEach((docSnap) => batidas.push({ id: docSnap.id, ...docSnap.data() }));
 
-    // Cache usado para popular o seletor de "qual ponto" no modal de solicitação de ajuste
-    minhasBatidasCache = [...batidas].sort((a, b) => new Date(b.data) - new Date(a.data));
+        // Mantém o cache atualizado mesmo quando o colaborador apenas abre o Espelho.
+        minhasBatidasCache = [...batidas].sort((a, b) => new Date(b.data) - new Date(a.data));
 
-    const { jornadas, tempoTotalDiaMs } = processarBatidas(batidas);
-    const jornadaSemanal = getJornadaSemanal(uid);
+        const { jornadas, tempoTotalDiaMs } = processarBatidas(batidas);
+        const jornadaSemanal = getJornadaSemanal(uid);
+        const horariosSemanais = Array.isArray(perfisMap[uid]?.horariosSemanais)
+            ? perfisMap[uid].horariosSemanais
+            : [];
 
-    lista.innerHTML = "";
-    let mesAtual = null;
-    jornadas.forEach((jornada) => {
-        const chaveDoMes = chaveMes(jornada.dataReferencia);
-        if (chaveDoMes !== mesAtual) {
-            mesAtual = chaveDoMes;
-            lista.appendChild(criarCabecalhoMes(jornada.dataReferencia));
+        lista.innerHTML = "";
+
+        if (jornadas.length === 0) {
+            lista.innerHTML = `
+                <li class="espelho-vazio">
+                    <i class="fa-regular fa-clock"></i>
+                    <div>
+                        <strong>Nenhum ponto registrado ainda</strong>
+                        <span>Seus registros de entrada e saída aparecerão aqui assim que forem realizados.</span>
+                    </div>
+                </li>
+            `;
+            return;
         }
 
-        const li = document.createElement("li");
-        li.style.background = "#1e293b";
-        li.style.padding = "15px 20px";
-        li.style.borderRadius = "12px";
-        li.style.display = "flex";
-        li.style.flexDirection = "column";
-        li.style.gap = "8px";
-        li.style.borderLeft = (jornada.entrada && jornada.saida) ? "4px solid #10b981" : "4px solid #f59e0b";
+        let mesAtual = null;
+        jornadas.forEach((jornada) => {
+            const chaveDoMes = chaveMes(jornada.dataReferencia);
+            if (chaveDoMes !== mesAtual) {
+                mesAtual = chaveDoMes;
+                lista.appendChild(criarCabecalhoMes(jornada.dataReferencia));
+            }
 
-        const diaTexto = DIAS_SEMANA[jornada.dataReferencia.getDay()];
-        const dataFormatada = jornada.dataReferencia.toLocaleDateString("pt-BR");
-        const horaEntrada = jornada.entrada ? new Date(jornada.entrada.data).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : "--:--";
-        const horaSaida = jornada.saida ? new Date(jornada.saida.data).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }) : "Trabalhando...";
+            const li = document.createElement("li");
+            li.className = "espelho-item";
+            li.style.borderLeft = (jornada.entrada && jornada.saida) ? "4px solid #10b981" : "4px solid #f59e0b";
 
-        let turnoDuracao = "";
-        let badgeHtml = "";
+            const diaIndex = jornada.dataReferencia.getDay();
+            const diaTexto = DIAS_SEMANA[diaIndex];
+            const dataFormatada = jornada.dataReferencia.toLocaleDateString("pt-BR");
+            const horaEntrada = jornada.entrada
+                ? new Date(jornada.entrada.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                : "--:--";
+            const horaSaida = jornada.saida
+                ? new Date(jornada.saida.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                : "Trabalhando...";
 
-        if (jornada.entrada && jornada.saida) {
-            const duracaoTurnoHoras = (new Date(jornada.saida.data) - new Date(jornada.entrada.data)) / 3600000;
-            turnoDuracao = `<span style="color:#94a3b8; font-size: 0.9em; margin-left: 6px;">(Duração: ${formatarTempo(duracaoTurnoHoras)})</span>`;
+            const horarioPrevisto = horariosSemanais[diaIndex] || {};
+            const entradaPrevista = horarioPrevisto.entrada || "--:--";
+            const saidaPrevista = horarioPrevisto.saida || "--:--";
+            const temHorarioPrevisto = Boolean(horarioPrevisto.entrada || horarioPrevisto.saida);
+            const cargaDiaria = ehFeriado(jornada.dataReferencia) ? 0 : Number(jornadaSemanal[diaIndex] || 0);
 
-            const totalDiaHoras = (tempoTotalDiaMs[dataFormatada] || 0) / 3600000;
-            const cargaDiaria = ehFeriado(jornada.dataReferencia) ? 0 : jornadaSemanal[jornada.dataReferencia.getDay()];
-            const badge = calcularBadgeExtra(totalDiaHoras, cargaDiaria);
-            if (badge) badgeHtml = `<span style="background: rgba(0,0,0,0.001);" class="badge ${badge.classe}">${badge.texto}</span>`;
-        } else if (jornada.entrada && !jornada.saida) {
-            const parcialHoras = (new Date() - new Date(jornada.entrada.data)) / 3600000;
-            turnoDuracao = `<span style="color:#fbbf24; font-size: 0.9em; font-style: italic; margin-left:6px;">(${formatarTempo(parcialHoras)} até o momento)</span>`;
-        }
+            let duracaoTurno = "";
+            let totalDiaTexto = "--";
+            let saldoHtml = "";
+            let statusTexto = "Ponto incompleto";
 
-        li.innerHTML = `
-            <div style="display:flex; justify-content: space-between; align-items: center;">
-                <strong style="color:#3b82f6; font-size:1.1rem;">${diaTexto} (${dataFormatada})${ehFeriado(jornada.dataReferencia) ? ' <span style="color:#f59e0b; font-size:0.75em;">(Feriado)</span>' : ''}</strong>
-                ${badgeHtml}
-            </div>
-            <div style="color:#e2e8f0; font-size: 1.05rem; margin-top: 5px;">
-                <i class="fa-regular fa-clock" style="margin-right: 5px; color:#94a3b8;"></i>
-                ${horaEntrada} às ${horaSaida}
-                ${turnoDuracao}
-            </div>
+            if (jornada.entrada && jornada.saida) {
+                const duracaoTurnoHoras = (new Date(jornada.saida.data) - new Date(jornada.entrada.data)) / 3600000;
+                duracaoTurno = formatarTempo(duracaoTurnoHoras);
+
+                const totalDiaHoras = (tempoTotalDiaMs[dataFormatada] || 0) / 3600000;
+                totalDiaTexto = formatarTempo(totalDiaHoras);
+
+                const badge = calcularBadgeExtra(totalDiaHoras, cargaDiaria);
+                if (badge) {
+                    saldoHtml = `<span class="badge ${badge.classe} espelho-badge">${badge.texto}</span>`;
+                }
+                statusTexto = "Turno concluído";
+            } else if (jornada.entrada && !jornada.saida) {
+                const parcialHoras = Math.max(0, (new Date() - new Date(jornada.entrada.data)) / 3600000);
+                duracaoTurno = `${formatarTempo(parcialHoras)} até o momento`;
+                statusTexto = "Em andamento";
+            } else if (!jornada.entrada && jornada.saida) {
+                statusTexto = "Saída sem entrada";
+            }
+
+            const previstoHtml = temHorarioPrevisto
+                ? `
+                    <div class="espelho-meta">
+                        <span><small>Jornada prevista</small><strong>${entradaPrevista} → ${saidaPrevista}</strong></span>
+                        <span><small>Carga diária</small><strong>${cargaDiaria ? formatarTempo(cargaDiaria) : "Folga/feriado"}</strong></span>
+                    </div>
+                `
+                : `
+                    <div class="espelho-meta">
+                        <span><small>Jornada prevista</small><strong>Não configurada</strong></span>
+                        <span><small>Carga diária</small><strong>${cargaDiaria ? formatarTempo(cargaDiaria) : "Folga/feriado"}</strong></span>
+                    </div>
+                `;
+
+            li.innerHTML = `
+                <div class="espelho-item-header">
+                    <div class="espelho-data">
+                        <strong>${diaTexto}</strong>
+                        <span>${dataFormatada}${ehFeriado(jornada.dataReferencia) ? " • FERIADO" : ""}</span>
+                    </div>
+                    <div class="espelho-status">${statusTexto}</div>
+                </div>
+
+                ${previstoHtml}
+
+                <div class="espelho-realizado">
+                    <div>
+                        <small>Entrada registrada</small>
+                        <strong>${horaEntrada}</strong>
+                    </div>
+                    <div>
+                        <small>Saída registrada</small>
+                        <strong>${horaSaida}</strong>
+                    </div>
+                    <div>
+                        <small>Total do dia</small>
+                        <strong>${totalDiaTexto}</strong>
+                    </div>
+                    <div>
+                        <small>Duração deste turno</small>
+                        <strong>${duracaoTurno || "--"}</strong>
+                    </div>
+                </div>
+
+                <div class="espelho-item-footer">
+                    <span class="espelho-legenda">
+                        ${jornada.entrada && jornada.saida ? "Registro calculado a partir das batidas salvas." : "Finalize o turno para calcular o total e o saldo."}
+                    </span>
+                    ${saldoHtml}
+                </div>
+            `;
+
+            lista.appendChild(li);
+        });
+    } catch (erro) {
+        console.error("Erro ao carregar o espelho de ponto:", erro);
+        lista.innerHTML = `
+            <li class="espelho-vazio espelho-erro">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <strong>Não foi possível carregar seu espelho</strong>
+                    <span>Verifique sua conexão e tente abrir novamente.</span>
+                </div>
+            </li>
         `;
-        lista.appendChild(li);
-    });
+        showToast("Não foi possível carregar o espelho de ponto.", "erro");
+    }
 }
 
 // ==========================================================
