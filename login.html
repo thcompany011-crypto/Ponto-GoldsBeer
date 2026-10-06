@@ -33,6 +33,7 @@
                 try {
                     const registro = await navigator.serviceWorker.register('./service-worker.js');
                     await registro.update();
+                    setTimeout(() => sessionStorage.removeItem('ponto-sw-reloaded'), 5000);
                 } catch (erro) {
                     console.error('Erro ao atualizar o sistema:', erro);
                 }
