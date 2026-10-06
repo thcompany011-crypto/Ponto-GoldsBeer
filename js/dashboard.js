@@ -519,6 +519,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (secaoColaboradores) secaoColaboradores.style.display = "block";
                 if (secaoSolicitacoesAdmin) secaoSolicitacoesAdmin.style.display = "block";
                 popularSelectColaboradores();
+                popularSelectRelatorio();
                 renderizarListaColaboradores();
                 renderizarListaFeriados();
                 carregarPainelAdmin();
@@ -587,16 +588,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Relatório / Fechamento ---
-    const filtroRelatorioColaborador = document.getElementById("filtroRelatorioColaborador");
-    if (filtroRelatorioColaborador) {
-        filtroRelatorioColaborador.innerHTML = '<option value="">Todos os colaboradores</option>';
-        Object.entries(usuariosMap).forEach(([uid, nome]) => {
-            const opt = document.createElement("option");
-            opt.value = uid;
-            opt.textContent = nome;
-            filtroRelatorioColaborador.appendChild(opt);
-        });
-    }
+    // O seletor é preenchido depois de mapearUsuarios(), junto com os demais
+    // controles administrativos. Assim ele recebe os colaboradores reais.
+    popularSelectRelatorio();
 
     const btnGerarRelatorio = document.getElementById("btnGerarRelatorio");
     if (btnGerarRelatorio) btnGerarRelatorio.addEventListener("click", () => gerarRelatorio());
@@ -749,6 +743,28 @@ async function mapearUsuarios() {
     });
 }
 
+function popularSelectRelatorio() {
+    const select = document.getElementById("filtroRelatorioColaborador");
+    if (!select) return;
+
+    const valorAtual = select.value;
+    select.innerHTML = '<option value="">Todos os colaboradores</option>';
+
+    Object.entries(perfisMap)
+        .filter(([, perfil]) => perfil.ativo !== false)
+        .sort((a, b) => a[1].nome.localeCompare(b[1].nome, "pt-BR", { sensitivity: "base" }))
+        .forEach(([uid, perfil]) => {
+            const opt = document.createElement("option");
+            opt.value = uid;
+            opt.textContent = perfil.nome;
+            select.appendChild(opt);
+        });
+
+    if (valorAtual && [...select.options].some(opt => opt.value === valorAtual)) {
+        select.value = valorAtual;
+    }
+}
+
 function popularSelectColaboradores() {
     const select = document.getElementById("selectColaboradorManual");
     if (!select) return;
@@ -874,6 +890,7 @@ async function salvarColaborador() {
         document.getElementById("modal-colaborador").style.display = "none";
         await mapearUsuarios();
         popularSelectColaboradores();
+        popularSelectRelatorio();
         renderizarListaColaboradores();
         carregarPainelAdmin();
         showToast("Colaborador salvo com sucesso!", "sucesso");
