@@ -201,7 +201,9 @@ async function inicializarNotificacoesPush(uid, solicitarPermissao = false) {
 
         if (!messaging) messaging = getMessaging(app);
         const registro = await navigator.serviceWorker.ready;
-        const opcoesToken = { serviceWorkerRegistration: registro };\n        if (FCM_VAPID_KEY) opcoesToken.vapidKey = FCM_VAPID_KEY;\n        const token = await getToken(messaging, opcoesToken);
+        const opcoesToken = { serviceWorkerRegistration: registro };
+        if (FCM_VAPID_KEY) opcoesToken.vapidKey = FCM_VAPID_KEY;
+        const token = await getToken(messaging, opcoesToken);
         if (!token) return false;
 
         const tokenId = await hashToken(token);
