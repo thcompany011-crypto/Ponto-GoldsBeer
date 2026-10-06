@@ -21,10 +21,23 @@
 <!-- Ícone do aplicativo -->
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js');
-  }
-</script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (sessionStorage.getItem('ponto-sw-reloaded') === '1') return;
+                sessionStorage.setItem('ponto-sw-reloaded', '1');
+                window.location.reload();
+            });
+
+            window.addEventListener('load', async () => {
+                try {
+                    const registro = await navigator.serviceWorker.register('./service-worker.js');
+                    await registro.update();
+                } catch (erro) {
+                    console.error('Erro ao atualizar o sistema:', erro);
+                }
+            });
+        }
+    </script>
 </head>
 <body>
     <script type="module">
