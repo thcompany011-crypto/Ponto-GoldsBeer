@@ -32,7 +32,7 @@ const RAIO_PERMITIDO_METROS = 150; // ajuste esse valor se o GPS de dentro do ba
 const AVISO_JORNADA_MINUTOS = 15;
 // Se o projeto Firebase tiver um Web Push certificate, coloque aqui a chave pública VAPID.
 // Se ficar vazio, o SDK tenta usar a configuração padrão disponível no projeto.
-const FCM_VAPID_KEY = "";
+const FCM_VAPID_KEY = "BOnJQR5JSW-tOSCkHtEvu71mpEYAqGKjUEM4eewsyZ8p6BMUGeVWpTe-BIrhvz_xUzV9VY58HmVPwWCL88qJfeg";
 const DIAS_SEMANA = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 const DIAS_SEMANA_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const NOMES_MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
