@@ -518,6 +518,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (painelAvancado) painelAvancado.style.display = "block";
                 if (secaoColaboradores) secaoColaboradores.style.display = "block";
                 if (secaoSolicitacoesAdmin) secaoSolicitacoesAdmin.style.display = "block";
+
+                // A tela inicial do administrador fica limpa: sem relógio e sem
+                // ações exclusivas do colaborador (agenda, espelho, ajuste,
+                // instalação e registro de entrada/saída).
+                const elementosSomenteColaborador = [
+                    document.querySelector(".clock-circle"),
+                    document.getElementById("btnExportarAgenda"),
+                    document.getElementById("btnToggleHistorico"),
+                    document.getElementById("btnAbrirSolicitacao"),
+                    document.getElementById("btnInstalarApp"),
+                    document.getElementById("avisoInstalarIOS"),
+                    document.querySelector(".acoes-ponto")
+                ];
+
+                elementosSomenteColaborador.forEach((elemento) => {
+                    if (elemento) elemento.style.display = "none";
+                });
+
                 popularSelectColaboradores();
                 popularSelectRelatorio();
                 renderizarListaColaboradores();
