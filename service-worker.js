@@ -1,4 +1,4 @@
-const cacheName = 'ponto-pro-v5';
+const cacheName = 'ponto-pro-v6';
 
 const assets = [
 
