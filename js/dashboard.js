@@ -1745,7 +1745,7 @@ async function gerarRelatorio() {
                         pendenteDia = cargaDia - trabalhadoHoras;
                     }
                 }
-                if (trabalhadoHoras > 0) diasTrabalhados++;
+                if (trabalhadoHoras > 0 || turnoAbertoDia) diasTrabalhados++;
                 totalTrabalhadoHoras += trabalhadoHoras;
                 totalPrevistoHoras += cargaDia;
                 totalExcedenteHoras += excedenteDia;
