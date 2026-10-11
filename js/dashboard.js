@@ -1587,6 +1587,9 @@ function renderizarPainelAdmin() {
     }
 
     let mesAtualAdmin = null;
+    // Mostra o saldo diário de horas extras apenas uma vez por colaborador/data,
+    // mesmo quando há vários períodos de trabalho no mesmo dia.
+    const diasComBadgeExibido = new Set();
     jornadasFiltradas.forEach((jornada) => {
         const chaveDoMes = chaveMes(jornada.dataReferencia);
         if (chaveDoMes !== mesAtualAdmin) {
@@ -1610,10 +1613,16 @@ function renderizarPainelAdmin() {
             const duracaoTurnoHoras = (new Date(jornada.saida.data) - new Date(jornada.entrada.data)) / 3600000;
             turnoDuracao = `<span style="color:#94a3b8; font-size: 0.9em; margin-left: 6px;">(${formatarTempo(duracaoTurnoHoras)})</span>`;
 
-            const totalDiaHoras = (jornada.tempoTotalDiaMs[dataFormatada] || 0) / 3600000;
-            const cargaDiaria = ehFeriado(jornada.dataReferencia) ? 0 : getJornadaSemanal(jornada.uid)[jornada.dataReferencia.getDay()];
-            const badge = calcularBadgeExtra(totalDiaHoras, cargaDiaria);
-            if (badge) badgeHtml = `<span class="badge ${badge.classe}">${badge.texto}</span>`;
+            const chaveBadgeDia = `${jornada.uid}|${dataFormatada}`;
+            if (!diasComBadgeExibido.has(chaveBadgeDia)) {
+                const totalDiaHoras = (jornada.tempoTotalDiaMs[dataFormatada] || 0) / 3600000;
+                const cargaDiaria = ehFeriado(jornada.dataReferencia) ? 0 : getJornadaSemanal(jornada.uid)[jornada.dataReferencia.getDay()];
+                const badge = calcularBadgeExtra(totalDiaHoras, cargaDiaria);
+                if (badge) {
+                    badgeHtml = `<span class="badge ${badge.classe}">${badge.texto}</span>`;
+                    diasComBadgeExibido.add(chaveBadgeDia);
+                }
+            }
         }
 
         const infoTexto = document.createElement("div");
@@ -1721,12 +1730,20 @@ async function gerarRelatorio() {
                 const feriado = ehFeriado(cursor);
                 const cargaDia = feriado ? 0 : Number(jornadaSemanal[diaSemana] || 0);
                 const trabalhadoHoras = (tempoTotalDiaMs[chaveDia] || 0) / 3600000;
+                // Um período sem saída torna o saldo daquele dia provisório.
+                // Não contabiliza horas pendentes/extras definitivas até fechar o turno.
+                const turnoAbertoDia = processado.jornadas.some(j =>
+                    j.entrada && !j.saida &&
+                    new Date(j.dataReferencia).toLocaleDateString("pt-BR") === chaveDia
+                );
                 let excedenteDia = 0, pendenteDia = 0, valorExtraDia = 0;
-                if (trabalhadoHoras > cargaDia) {
-                    excedenteDia = trabalhadoHoras - cargaDia;
-                    valorExtraDia = excedenteDia * valorHora;
-                } else if (trabalhadoHoras < cargaDia) {
-                    pendenteDia = cargaDia - trabalhadoHoras;
+                if (!turnoAbertoDia) {
+                    if (trabalhadoHoras > cargaDia) {
+                        excedenteDia = trabalhadoHoras - cargaDia;
+                        valorExtraDia = excedenteDia * valorHora;
+                    } else if (trabalhadoHoras < cargaDia) {
+                        pendenteDia = cargaDia - trabalhadoHoras;
+                    }
                 }
                 if (trabalhadoHoras > 0) diasTrabalhados++;
                 totalTrabalhadoHoras += trabalhadoHoras;
@@ -1741,7 +1758,7 @@ async function gerarRelatorio() {
                         entrada: j.entrada?.data ? new Date(j.entrada.data).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) : "--:--",
                         saida: j.saida?.data ? new Date(j.saida.data).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) : "--:--"
                     }));
-                    detalheDiario.push({data:chaveDia,diaSemana:DIAS_SEMANA_ABREV[diaSemana],feriado,trabalhadoHoras,cargaDia,excedenteDia,pendenteDia,valorExtraDia,pares});
+                    detalheDiario.push({data:chaveDia,diaSemana:DIAS_SEMANA_ABREV[diaSemana],feriado,trabalhadoHoras,cargaDia,excedenteDia,pendenteDia,valorExtraDia,turnoAberto:turnoAbertoDia,pares});
                 }
                 cursor.setDate(cursor.getDate() + 1);
             }
@@ -1806,7 +1823,7 @@ function renderizarRelatorio() {
             <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid #334155;">Data</th><th>Entrada</th><th>Saída</th><th>Trabalhado</th><th>Carga</th><th>Saldo</th></tr></thead><tbody>`;
         l.detalheDiario.forEach(item => {
-            const saldo = item.excedenteDia > 0 ? `+${formatarHorasRelatorio(item.excedenteDia)}` : (item.pendenteDia > 0 ? `-${formatarHorasRelatorio(item.pendenteDia)}` : "0m");
+            const saldo = item.turnoAberto ? "Turno aberto" : (item.excedenteDia > 0 ? `+${formatarHorasRelatorio(item.excedenteDia)}` : (item.pendenteDia > 0 ? `-${formatarHorasRelatorio(item.pendenteDia)}` : "0m"));
             const pares = item.pares.length ? item.pares : [{entrada:"--:--",saida:"--:--"}];
             pares.forEach((par,index) => {
                 html += `<tr>
