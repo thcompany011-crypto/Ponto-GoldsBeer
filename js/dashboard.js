@@ -1587,8 +1587,13 @@ function renderizarPainelAdmin() {
     }
 
     let mesAtualAdmin = null;
-    // Mostra o saldo diário de horas extras apenas uma vez por colaborador/data,
-    // mesmo quando há vários períodos de trabalho no mesmo dia.
+    // Não mostra saldo diário definitivo quando existe entrada sem saída no dia.
+    const diasComTurnoAberto = new Set(
+        jornadasFiltradas
+            .filter(j => j.uid && j.entrada && !j.saida)
+            .map(j => `${j.uid}|${new Date(j.dataReferencia).toLocaleDateString("pt-BR")}`)
+    );
+    // Mostra o saldo diário apenas uma vez por colaborador/data.
     const diasComBadgeExibido = new Set();
     jornadasFiltradas.forEach((jornada) => {
         const chaveDoMes = chaveMes(jornada.dataReferencia);
@@ -1614,7 +1619,7 @@ function renderizarPainelAdmin() {
             turnoDuracao = `<span style="color:#94a3b8; font-size: 0.9em; margin-left: 6px;">(${formatarTempo(duracaoTurnoHoras)})</span>`;
 
             const chaveBadgeDia = `${jornada.uid}|${dataFormatada}`;
-            if (!diasComBadgeExibido.has(chaveBadgeDia)) {
+            if (!diasComTurnoAberto.has(chaveBadgeDia) && !diasComBadgeExibido.has(chaveBadgeDia)) {
                 const totalDiaHoras = (jornada.tempoTotalDiaMs[dataFormatada] || 0) / 3600000;
                 const cargaDiaria = ehFeriado(jornada.dataReferencia) ? 0 : getJornadaSemanal(jornada.uid)[jornada.dataReferencia.getDay()];
                 const badge = calcularBadgeExtra(totalDiaHoras, cargaDiaria);
@@ -1752,7 +1757,7 @@ async function gerarRelatorio() {
                 totalPendenteHoras += pendenteDia;
                 totalValorExtra += valorExtraDia;
 
-                if (trabalhadoHoras > 0 || cargaDia > 0) {
+                if (trabalhadoHoras > 0 || cargaDia > 0 || turnoAbertoDia) {
                     const jornadasDoDia = processado.jornadas.filter(j => new Date(j.dataReferencia).toLocaleDateString("pt-BR") === chaveDia);
                     const pares = jornadasDoDia.map(j => ({
                         entrada: j.entrada?.data ? new Date(j.entrada.data).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) : "--:--",
@@ -1863,7 +1868,7 @@ function exportarParaPDF() {
             par.entrada,par.saida,
             index===0?formatarHorasRelatorio(item.trabalhadoHoras):"",
             index===0?formatarHorasRelatorio(item.cargaDia):"",
-            index===0?(item.excedenteDia>0?"+"+formatarHorasRelatorio(item.excedenteDia):item.pendenteDia>0?"-"+formatarHorasRelatorio(item.pendenteDia):"0m"):""
+            index===0?(item.turnoAberto?"Turno aberto":item.excedenteDia>0?"+"+formatarHorasRelatorio(item.excedenteDia):item.pendenteDia>0?"-"+formatarHorasRelatorio(item.pendenteDia):"0m"):""
         ]));
     }));
     docPdf.autoTable({startY:35,head:[["Data","Entrada","Saída","Trabalhado","Carga","Saldo"]],body:corpo,theme:"striped",headStyles:{fillColor:[180,115,0]},styles:{fontSize:8,cellPadding:3}});
