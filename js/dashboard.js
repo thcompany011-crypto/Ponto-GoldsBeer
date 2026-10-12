@@ -1721,7 +1721,7 @@ async function gerarRelatorio() {
 
         for (const uid in batidasPorUsuario) {
             const jornadaSemanal = getJornadaSemanal(uid);
-            const valorHora = getValorHoraExtra(uid);
+            const valorHoraConfigurado = getValorHoraExtra(uid);
             const processado = processarBatidas(batidasPorUsuario[uid]);
             const tempoTotalDiaMs = processado.tempoTotalDiaMs;
             let totalTrabalhadoHoras = 0, totalPrevistoHoras = 0, totalExcedenteHoras = 0, totalPendenteHoras = 0, totalValorExtra = 0, diasTrabalhados = 0;
@@ -1733,6 +1733,8 @@ async function gerarRelatorio() {
                 const chaveDia = cursor.toLocaleDateString("pt-BR");
                 const diaSemana = cursor.getDay();
                 const feriado = ehFeriado(cursor);
+                // Em feriados cadastrados, toda hora trabalhada (jornada ou extra) vale R$ 15,00.
+                const valorHoraDia = feriado ? 15 : valorHoraConfigurado;
                 const cargaDia = feriado ? 0 : Number(jornadaSemanal[diaSemana] || 0);
                 const trabalhadoHoras = (tempoTotalDiaMs[chaveDia] || 0) / 3600000;
                 // Um período sem saída torna o saldo daquele dia provisório.
@@ -1745,7 +1747,7 @@ async function gerarRelatorio() {
                 if (!turnoAbertoDia) {
                     if (trabalhadoHoras > cargaDia) {
                         excedenteDia = trabalhadoHoras - cargaDia;
-                        valorExtraDia = excedenteDia * valorHora;
+                        valorExtraDia = excedenteDia * valorHoraDia;
                     } else if (trabalhadoHoras < cargaDia) {
                         pendenteDia = cargaDia - trabalhadoHoras;
                     }
