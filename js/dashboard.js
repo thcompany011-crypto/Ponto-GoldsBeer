@@ -1707,7 +1707,7 @@ async function gerarRelatorio() {
 
         for (const uid in batidasPorUsuario) {
             const jornadaSemanal = getJornadaSemanal(uid);
-            const valorHora = getValorHoraExtra(uid);
+            const valorHoraConfigurado = getValorHoraExtra(uid);
             const processado = processarBatidas(batidasPorUsuario[uid]);
             const tempoTotalDiaMs = processado.tempoTotalDiaMs;
             let totalTrabalhadoHoras = 0, totalPrevistoHoras = 0, totalExcedenteHoras = 0, totalPendenteHoras = 0, totalValorExtra = 0, diasTrabalhados = 0;
@@ -1719,12 +1719,14 @@ async function gerarRelatorio() {
                 const chaveDia = cursor.toLocaleDateString("pt-BR");
                 const diaSemana = cursor.getDay();
                 const feriado = ehFeriado(cursor);
+                // Em feriados cadastrados, toda hora trabalhada vale R$ 15,00.
+                const valorHoraDia = feriado ? 15 : valorHoraConfigurado;
                 const cargaDia = feriado ? 0 : Number(jornadaSemanal[diaSemana] || 0);
                 const trabalhadoHoras = (tempoTotalDiaMs[chaveDia] || 0) / 3600000;
                 let excedenteDia = 0, pendenteDia = 0, valorExtraDia = 0;
                 if (trabalhadoHoras > cargaDia) {
                     excedenteDia = trabalhadoHoras - cargaDia;
-                    valorExtraDia = excedenteDia * valorHora;
+                    valorExtraDia = excedenteDia * valorHoraDia;
                 } else if (trabalhadoHoras < cargaDia) {
                     pendenteDia = cargaDia - trabalhadoHoras;
                 }
@@ -1819,7 +1821,7 @@ function renderizarRelatorio() {
                 </tr>`;
             });
         });
-        html += `</tbody></table></div><div style="text-align:right;margin-top:10px;color:#cbd5e1;">Hora extra: <strong>${formatarMoeda(l.valorExtra)}</strong></div></div>`;
+        html += `</tbody></table></div><div style="text-align:right;margin-top:10px;color:#cbd5e1;">Valor calculado (inclui feriados): <strong>${formatarMoeda(l.valorExtra)}</strong></div></div>`;
     }
     html += `<div style="border-top:1px solid #334155;padding-top:15px;margin-top:10px;"><strong style="color:#ffb000;">TOTAL DO RELATÓRIO</strong><br>
         Dias trabalhados: ${d.totais.diasTrabalhados} • Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)} • Previstas: ${formatarHorasRelatorio(d.totais.prevista)} • Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)} • Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)} • Valor extra: ${formatarMoeda(d.totais.valorExtra)}
@@ -1853,7 +1855,7 @@ function exportarParaPDF() {
     let y=docPdf.lastAutoTable.finalY+10;
     docPdf.setFontSize(10);
     docPdf.text(`Dias trabalhados: ${d.totais.diasTrabalhados}   Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)}   Previstas: ${formatarHorasRelatorio(d.totais.prevista)}   Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)}   Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)}`,14,y);
-    docPdf.text(`Valor total de horas extras: ${formatarMoeda(d.totais.valorExtra)}`,14,y+7);
+    docPdf.text(`Valor total calculado (inclui feriados): ${formatarMoeda(d.totais.valorExtra)}`,14,y+7);
     docPdf.line(20,y+30,110,y+30); docPdf.text("Responsável / RH",20,y+36);
     docPdf.line(175,y+30,265,y+30); docPdf.text("Colaborador (ciente)",175,y+36);
     const paginas=docPdf.internal.getNumberOfPages();
@@ -1880,7 +1882,7 @@ function exportarParaCSV() {
     const d = dadosRelatorioAtual;
 
     const linhasCSV = [
-        ["Colaborador", "Horas Trabalhadas", "Horas Previstas", "Horas Pendentes", "Horas Extras", "Valor Extra (R$)"]
+        ["Colaborador", "Horas Trabalhadas", "Horas Previstas", "Horas Pendentes", "Horas Extras", "Valor calculado (R$)"]
     ];
     d.linhas.forEach(l => {
         linhasCSV.push([
