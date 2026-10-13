@@ -22,20 +22,50 @@
     <link rel="stylesheet" href="css/style.css">
 
     <script>
+        // Atualiza o PWA automaticamente quando uma nova versão for publicada.
         if ('serviceWorker' in navigator) {
+            let verificandoAtualizacao = false;
+
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (sessionStorage.getItem('ponto-sw-reloaded') === '1') return;
                 sessionStorage.setItem('ponto-sw-reloaded', '1');
                 window.location.reload();
             });
 
+            async function verificarAtualizacao(registro) {
+                if (verificandoAtualizacao || !navigator.onLine) return;
+                verificandoAtualizacao = true;
+                try {
+                    await registro.update();
+                } catch (erro) {
+                    console.warn('Não foi possível verificar atualização agora:', erro);
+                } finally {
+                    verificandoAtualizacao = false;
+                }
+            }
+
             window.addEventListener('load', async () => {
                 try {
-                    const registro = await navigator.serviceWorker.register('./service-worker.js');
-                    await registro.update();
-                    setTimeout(() => sessionStorage.removeItem('ponto-sw-reloaded'), 5000);
+                    const registro = await navigator.serviceWorker.register('./service-worker.js', {
+                        updateViaCache: 'none'
+                    });
+                    await verificarAtualizacao(registro);
+
+                    // Também verifica páginas que continuam abertas.
+                    window.setInterval(() => verificarAtualizacao(registro), 60 * 1000);
+
+                    // Ao voltar para o app, verifica sem exigir limpar o cache.
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') {
+                            verificarAtualizacao(registro);
+                        }
+                    });
+
+                    window.setTimeout(() => {
+                        sessionStorage.removeItem('ponto-sw-reloaded');
+                    }, 10000);
                 } catch (erro) {
-                    console.error('Erro ao atualizar o sistema:', erro);
+                    console.error('Erro ao registrar/verificar atualização do sistema:', erro);
                 }
             });
         }
