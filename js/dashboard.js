@@ -1587,6 +1587,14 @@ function renderizarPainelAdmin() {
     }
 
     let mesAtualAdmin = null;
+    // Não mostra saldo diário definitivo quando existe entrada sem saída no dia.
+    const diasComTurnoAberto = new Set(
+        jornadasFiltradas
+            .filter(j => j.uid && j.entrada && !j.saida)
+            .map(j => `${j.uid}|${new Date(j.dataReferencia).toLocaleDateString("pt-BR")}`)
+    );
+    // Mostra o saldo diário apenas uma vez por colaborador/data.
+    const diasComBadgeExibido = new Set();
     jornadasFiltradas.forEach((jornada) => {
         const chaveDoMes = chaveMes(jornada.dataReferencia);
         if (chaveDoMes !== mesAtualAdmin) {
@@ -1610,10 +1618,16 @@ function renderizarPainelAdmin() {
             const duracaoTurnoHoras = (new Date(jornada.saida.data) - new Date(jornada.entrada.data)) / 3600000;
             turnoDuracao = `<span style="color:#94a3b8; font-size: 0.9em; margin-left: 6px;">(${formatarTempo(duracaoTurnoHoras)})</span>`;
 
-            const totalDiaHoras = (jornada.tempoTotalDiaMs[dataFormatada] || 0) / 3600000;
-            const cargaDiaria = ehFeriado(jornada.dataReferencia) ? 0 : getJornadaSemanal(jornada.uid)[jornada.dataReferencia.getDay()];
-            const badge = calcularBadgeExtra(totalDiaHoras, cargaDiaria);
-            if (badge) badgeHtml = `<span class="badge ${badge.classe}">${badge.texto}</span>`;
+            const chaveBadgeDia = `${jornada.uid}|${dataFormatada}`;
+            if (!diasComTurnoAberto.has(chaveBadgeDia) && !diasComBadgeExibido.has(chaveBadgeDia)) {
+                const totalDiaHoras = (jornada.tempoTotalDiaMs[dataFormatada] || 0) / 3600000;
+                const cargaDiaria = ehFeriado(jornada.dataReferencia) ? 0 : getJornadaSemanal(jornada.uid)[jornada.dataReferencia.getDay()];
+                const badge = calcularBadgeExtra(totalDiaHoras, cargaDiaria);
+                if (badge) {
+                    badgeHtml = `<span class="badge ${badge.classe}">${badge.texto}</span>`;
+                    diasComBadgeExibido.add(chaveBadgeDia);
+                }
+            }
         }
 
         const infoTexto = document.createElement("div");
@@ -1707,7 +1721,7 @@ async function gerarRelatorio() {
 
         for (const uid in batidasPorUsuario) {
             const jornadaSemanal = getJornadaSemanal(uid);
-            const valorHora = getValorHoraExtra(uid);
+            const valorHoraConfigurado = getValorHoraExtra(uid);
             const processado = processarBatidas(batidasPorUsuario[uid]);
             const tempoTotalDiaMs = processado.tempoTotalDiaMs;
             let totalTrabalhadoHoras = 0, totalPrevistoHoras = 0, totalExcedenteHoras = 0, totalPendenteHoras = 0, totalValorExtra = 0, diasTrabalhados = 0;
@@ -1719,29 +1733,39 @@ async function gerarRelatorio() {
                 const chaveDia = cursor.toLocaleDateString("pt-BR");
                 const diaSemana = cursor.getDay();
                 const feriado = ehFeriado(cursor);
+                // Em feriados cadastrados, toda hora trabalhada (jornada ou extra) vale R$ 15,00.
+                const valorHoraDia = feriado ? 15 : valorHoraConfigurado;
                 const cargaDia = feriado ? 0 : Number(jornadaSemanal[diaSemana] || 0);
                 const trabalhadoHoras = (tempoTotalDiaMs[chaveDia] || 0) / 3600000;
+                // Um período sem saída torna o saldo daquele dia provisório.
+                // Não contabiliza horas pendentes/extras definitivas até fechar o turno.
+                const turnoAbertoDia = processado.jornadas.some(j =>
+                    j.entrada && !j.saida &&
+                    new Date(j.dataReferencia).toLocaleDateString("pt-BR") === chaveDia
+                );
                 let excedenteDia = 0, pendenteDia = 0, valorExtraDia = 0;
-                if (trabalhadoHoras > cargaDia) {
-                    excedenteDia = trabalhadoHoras - cargaDia;
-                    valorExtraDia = excedenteDia * valorHora;
-                } else if (trabalhadoHoras < cargaDia) {
-                    pendenteDia = cargaDia - trabalhadoHoras;
+                if (!turnoAbertoDia) {
+                    if (trabalhadoHoras > cargaDia) {
+                        excedenteDia = trabalhadoHoras - cargaDia;
+                        valorExtraDia = excedenteDia * valorHoraDia;
+                    } else if (trabalhadoHoras < cargaDia) {
+                        pendenteDia = cargaDia - trabalhadoHoras;
+                    }
                 }
-                if (trabalhadoHoras > 0) diasTrabalhados++;
+                if (trabalhadoHoras > 0 || turnoAbertoDia) diasTrabalhados++;
                 totalTrabalhadoHoras += trabalhadoHoras;
                 totalPrevistoHoras += cargaDia;
                 totalExcedenteHoras += excedenteDia;
                 totalPendenteHoras += pendenteDia;
                 totalValorExtra += valorExtraDia;
 
-                if (trabalhadoHoras > 0 || cargaDia > 0) {
+                if (trabalhadoHoras > 0 || cargaDia > 0 || turnoAbertoDia) {
                     const jornadasDoDia = processado.jornadas.filter(j => new Date(j.dataReferencia).toLocaleDateString("pt-BR") === chaveDia);
                     const pares = jornadasDoDia.map(j => ({
                         entrada: j.entrada?.data ? new Date(j.entrada.data).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) : "--:--",
                         saida: j.saida?.data ? new Date(j.saida.data).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) : "--:--"
                     }));
-                    detalheDiario.push({data:chaveDia,diaSemana:DIAS_SEMANA_ABREV[diaSemana],feriado,trabalhadoHoras,cargaDia,excedenteDia,pendenteDia,valorExtraDia,pares});
+                    detalheDiario.push({data:chaveDia,diaSemana:DIAS_SEMANA_ABREV[diaSemana],feriado,trabalhadoHoras,cargaDia,excedenteDia,pendenteDia,valorExtraDia,turnoAberto:turnoAbertoDia,pares});
                 }
                 cursor.setDate(cursor.getDate() + 1);
             }
@@ -1806,7 +1830,7 @@ function renderizarRelatorio() {
             <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid #334155;">Data</th><th>Entrada</th><th>Saída</th><th>Trabalhado</th><th>Carga</th><th>Saldo</th></tr></thead><tbody>`;
         l.detalheDiario.forEach(item => {
-            const saldo = item.excedenteDia > 0 ? `+${formatarHorasRelatorio(item.excedenteDia)}` : (item.pendenteDia > 0 ? `-${formatarHorasRelatorio(item.pendenteDia)}` : "0m");
+            const saldo = item.turnoAberto ? "Turno aberto" : (item.excedenteDia > 0 ? `+${formatarHorasRelatorio(item.excedenteDia)}` : (item.pendenteDia > 0 ? `-${formatarHorasRelatorio(item.pendenteDia)}` : "0m"));
             const pares = item.pares.length ? item.pares : [{entrada:"--:--",saida:"--:--"}];
             pares.forEach((par,index) => {
                 html += `<tr>
@@ -1819,7 +1843,7 @@ function renderizarRelatorio() {
                 </tr>`;
             });
         });
-        html += `</tbody></table></div><div style="text-align:right;margin-top:10px;color:#cbd5e1;">Hora extra: <strong>${formatarMoeda(l.valorExtra)}</strong></div></div>`;
+        html += `</tbody></table></div><div style="text-align:right;margin-top:10px;color:#cbd5e1;">Valor calculado (inclui feriados): <strong>${formatarMoeda(l.valorExtra)}</strong></div></div>`;
     }
     html += `<div style="border-top:1px solid #334155;padding-top:15px;margin-top:10px;"><strong style="color:#ffb000;">TOTAL DO RELATÓRIO</strong><br>
         Dias trabalhados: ${d.totais.diasTrabalhados} • Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)} • Previstas: ${formatarHorasRelatorio(d.totais.prevista)} • Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)} • Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)} • Valor extra: ${formatarMoeda(d.totais.valorExtra)}
@@ -1846,14 +1870,14 @@ function exportarParaPDF() {
             par.entrada,par.saida,
             index===0?formatarHorasRelatorio(item.trabalhadoHoras):"",
             index===0?formatarHorasRelatorio(item.cargaDia):"",
-            index===0?(item.excedenteDia>0?"+"+formatarHorasRelatorio(item.excedenteDia):item.pendenteDia>0?"-"+formatarHorasRelatorio(item.pendenteDia):"0m"):""
+            index===0?(item.turnoAberto?"Turno aberto":item.excedenteDia>0?"+"+formatarHorasRelatorio(item.excedenteDia):item.pendenteDia>0?"-"+formatarHorasRelatorio(item.pendenteDia):"0m"):""
         ]));
     }));
     docPdf.autoTable({startY:35,head:[["Data","Entrada","Saída","Trabalhado","Carga","Saldo"]],body:corpo,theme:"striped",headStyles:{fillColor:[180,115,0]},styles:{fontSize:8,cellPadding:3}});
     let y=docPdf.lastAutoTable.finalY+10;
     docPdf.setFontSize(10);
     docPdf.text(`Dias trabalhados: ${d.totais.diasTrabalhados}   Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)}   Previstas: ${formatarHorasRelatorio(d.totais.prevista)}   Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)}   Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)}`,14,y);
-    docPdf.text(`Valor total de horas extras: ${formatarMoeda(d.totais.valorExtra)}`,14,y+7);
+    docPdf.text(`Valor total calculado (inclui feriados): ${formatarMoeda(d.totais.valorExtra)}`,14,y+7);
     docPdf.line(20,y+30,110,y+30); docPdf.text("Responsável / RH",20,y+36);
     docPdf.line(175,y+30,265,y+30); docPdf.text("Colaborador (ciente)",175,y+36);
     const paginas=docPdf.internal.getNumberOfPages();
@@ -1880,7 +1904,7 @@ function exportarParaCSV() {
     const d = dadosRelatorioAtual;
 
     const linhasCSV = [
-        ["Colaborador", "Horas Trabalhadas", "Horas Previstas", "Horas Pendentes", "Horas Extras", "Valor Extra (R$)"]
+        ["Colaborador", "Horas Trabalhadas", "Horas Previstas", "Horas Pendentes", "Horas Extras", "Valor calculado (R$)"]
     ];
     d.linhas.forEach(l => {
         linhasCSV.push([
