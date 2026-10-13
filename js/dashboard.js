@@ -1620,7 +1620,7 @@ function renderizarPainelAdmin() {
         infoTexto.innerHTML = `
             <strong style="color:#fff;">${nomeColaborador}</strong>
             <span style="color:#94a3b8; margin: 0 6px;">•</span>
-            <span style="color:#3b82f6; font-weight:600;">${diaTexto} (${dataFormatada})</span>
+            <span style="color:#3b82f6; font-weight:600;">${diaTexto} (${dataFormatada})${ehFeriado(jornada.dataReferencia) ? ' <strong style="color:#f59e0b;">• FERIADO</strong>' : ""}</span>
             <span style="color:#94a3b8; margin: 0 6px;">•</span>
             <span style="color:#e2e8f0;">${horaEntrada} às ${horaSaida}</span>
             ${turnoDuracao}
@@ -1806,7 +1806,7 @@ function renderizarRelatorio() {
                 <div style="background:#111c26;padding:10px;border-radius:10px;">Pendentes<br><strong>${formatarHorasRelatorio(l.pendente)}</strong></div>
             </div>
             <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid #334155;">Data</th><th>Entrada</th><th>Saída</th><th>Trabalhado</th><th>Carga</th><th>Saldo</th></tr></thead><tbody>`;
+            <thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid #334155;">Data</th><th>Entrada</th><th>Saída</th><th>Trabalhado</th><th>Carga</th><th>Saldo</th><th>Valor extra</th></tr></thead><tbody>`;
         l.detalheDiario.forEach(item => {
             const saldo = item.excedenteDia > 0 ? `+${formatarHorasRelatorio(item.excedenteDia)}` : (item.pendenteDia > 0 ? `-${formatarHorasRelatorio(item.pendenteDia)}` : "0m");
             const pares = item.pares.length ? item.pares : [{entrada:"--:--",saida:"--:--"}];
@@ -1818,6 +1818,7 @@ function renderizarRelatorio() {
                     <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?formatarHorasRelatorio(item.trabalhadoHoras):""}</td>
                     <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?formatarHorasRelatorio(item.cargaDia):""}</td>
                     <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?saldo:""}</td>
+                    <td style="text-align:center;padding:8px;border-bottom:1px solid #1e293b;">${index===0?formatarMoeda(item.valorExtraDia):""}</td>
                 </tr>`;
             });
         });
@@ -1848,7 +1849,8 @@ function exportarParaPDF() {
             par.entrada,par.saida,
             index===0?formatarHorasRelatorio(item.trabalhadoHoras):"",
             index===0?formatarHorasRelatorio(item.cargaDia):"",
-            index===0?(item.excedenteDia>0?"+"+formatarHorasRelatorio(item.excedenteDia):item.pendenteDia>0?"-"+formatarHorasRelatorio(item.pendenteDia):"0m"):""
+            index===0?(item.excedenteDia>0?"+"+formatarHorasRelatorio(item.excedenteDia):item.pendenteDia>0?"-"+formatarHorasRelatorio(item.pendenteDia):"0m"):"",
+            index===0?formatarMoeda(item.valorExtraDia):""
         ]));
     }));
     docPdf.autoTable({startY:35,head:[["Data","Entrada","Saída","Trabalhado","Carga","Saldo"]],body:corpo,theme:"striped",headStyles:{fillColor:[180,115,0]},styles:{fontSize:8,cellPadding:3}});
