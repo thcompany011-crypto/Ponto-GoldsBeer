@@ -1853,7 +1853,7 @@ function exportarParaPDF() {
             index===0?formatarMoeda(item.valorExtraDia):""
         ]));
     }));
-    docPdf.autoTable({startY:35,head:[["Data","Entrada","Saída","Trabalhado","Carga","Saldo"]],body:corpo,theme:"striped",headStyles:{fillColor:[180,115,0]},styles:{fontSize:8,cellPadding:3}});
+    docPdf.autoTable({startY:35,head:[["Data","Entrada","Saída","Trabalhado","Carga","Saldo","Valor extra"]],body:corpo,theme:"striped",headStyles:{fillColor:[180,115,0]},styles:{fontSize:8,cellPadding:3}});
     let y=docPdf.lastAutoTable.finalY+10;
     docPdf.setFontSize(10);
     docPdf.text(`Dias trabalhados: ${d.totais.diasTrabalhados}   Trabalhadas: ${formatarHorasRelatorio(d.totais.trabalhadas)}   Previstas: ${formatarHorasRelatorio(d.totais.prevista)}   Extras: ${formatarHorasRelatorio(d.totais.excedenteHoras)}   Pendentes: ${formatarHorasRelatorio(d.totais.pendenteHoras)}`,14,y);
