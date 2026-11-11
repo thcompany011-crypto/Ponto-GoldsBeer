@@ -1,4 +1,4 @@
-const cacheName = 'ponto-pro-v9';
+const cacheName = 'ponto-pro-v10';
 
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
@@ -59,7 +59,10 @@ const assets = [
     './js/firebase.js',
     './js/auth.js',
     './js/login.js',
-    './js/dashboard.js'
+    './js/dashboard.js',
+    './logo.png',
+    './icons/icon-192.png',
+    './icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
