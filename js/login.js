@@ -207,8 +207,13 @@ if (formLogin) {
 
                 } else {
 
+                    // Diagnóstico temporário: mostra o código real do Firebase
+                    // sem expor senha ou outros dados digitados.
+                    const codigoErro = error.code || "sem-codigo";
+                    const detalheErro = error.message || "Sem detalhes adicionais.";
+
                     msgErro.textContent =
-                        "Não foi possível realizar o login.";
+                        "Falha técnica [" + codigoErro + "]: " + detalheErro;
 
                 }
 
