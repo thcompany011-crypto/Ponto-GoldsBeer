@@ -1541,13 +1541,18 @@ function popularSelectFiltroAuditoria() {
     if (!select) return;
     const valorAtual = select.value;
     select.innerHTML = '<option value="">Todos os colaboradores</option>';
-    for (const uid in usuariosMap) {
-        const opt = document.createElement("option");
-        opt.value = uid;
-        opt.textContent = usuariosMap[uid];
-        select.appendChild(opt);
-    }
-    select.value = valorAtual; // mantém a seleção ao recarregar
+
+    Object.entries(perfisMap)
+        .filter(([, perfil]) => perfil.ativo !== false)
+        .sort((a, b) => a[1].nome.localeCompare(b[1].nome, "pt-BR", { sensitivity: "base" }))
+        .forEach(([uid, perfil]) => {
+            const opt = document.createElement("option");
+            opt.value = uid;
+            opt.textContent = perfil.nome;
+            select.appendChild(opt);
+        });
+
+    select.value = valorAtual; // mantém a seleção ao recarregar, se ainda estiver ativa
 }
 
 function renderizarPainelAdmin() {
