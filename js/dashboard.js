@@ -443,8 +443,50 @@ function chaveDiaISO(date) {
     return `${y}-${m}-${d}`;
 }
 
+// Calcula a data do Domingo de Páscoa pelo algoritmo gregoriano.
+function calcularPascoa(ano) {
+    const a = ano % 19;
+    const b = Math.floor(ano / 100);
+    const c = ano % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const mes = Math.floor((h + l - 7 * m + 114) / 31);
+    const dia = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(ano, mes - 1, dia);
+}
+
+// Feriados nacionais recorrentes: não dependem de cadastro anual no Firebase.
+function ehFeriadoNacional(date) {
+    const ano = date.getFullYear();
+    const chave = chaveDiaISO(date);
+    const datasFixas = [
+        `${ano}-01-01`, // Confraternização Universal
+        `${ano}-04-21`, // Tiradentes
+        `${ano}-05-01`, // Dia do Trabalho
+        `${ano}-09-07`, // Independência do Brasil
+        `${ano}-10-12`, // Nossa Senhora Aparecida
+        `${ano}-11-02`, // Finados
+        `${ano}-11-15`, // Proclamação da República
+        `${ano}-11-20`, // Consciência Negra
+        `${ano}-12-25`  // Natal
+    ];
+
+    // Paixão de Cristo: sexta-feira anterior ao Domingo de Páscoa.
+    const sextaPaixao = calcularPascoa(ano);
+    sextaPaixao.setDate(sextaPaixao.getDate() - 2);
+
+    return datasFixas.includes(chave) || chaveDiaISO(sextaPaixao) === chave;
+}
+
 function ehFeriado(date) {
-    return feriadosSet.has(chaveDiaISO(date));
+    return ehFeriadoNacional(date) || feriadosSet.has(chaveDiaISO(date));
 }
 
 function getJornadaSemanal(uid) {
